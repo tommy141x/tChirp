@@ -1,0 +1,125 @@
+---
+title: "Troubleshooting"
+description: "Symptom-first fixes for tChirp: nothing chirps, everything chirps, only some vehicles chirp, the chirp never stops, and the errors that name tLib."
+order: 5
+group: "tChirp"
+---
+
+Turn on `Config.debug` first. With it on, every decision prints a line, and which line is **missing** is usually the whole answer.
+
+```lua
+Config.debug = true
+```
+
+Then `restart tChirp`, and run `tchirp_diag` in the server console for the configuration as it was actually read.
+
+## Nothing chirps at all
+
+Work down the list. Each step is a line you should see with `Config.debug` on.
+
+<Steps>
+
+### Does it start?
+
+```txt
+[tChirp][INFO] started — 8 vehicle model(s) configured, provider "auto"
+```
+
+No line at all means tChirp is not running, or its config has an error that stopped it. Both print above this.
+
+### Is the model configured?
+
+The count in that line is the size of `Config.chirpAssignments`. If it is 0, nothing can chirp. If it is 8, it is the eight shipped base-game models — check your car's **spawn name** is one of them.
+
+### Is the park kill detected?
+
+```txt
+[tChirp][DEBUG] park kill — vehicle 12345 (netId 67, sound VEHICLES_HORNS_POLICE_WARNING)
+```
+
+No line here and the siren was never seen as on. That is a provider problem:
+
+- Your ELS is not one of the six, so only `IsVehicleSirenOn` answers — which many ELS resources never set.
+- `Config.sirenSystem` is pinned to a provider that does not own this vehicle. Set it to `auto`.
+- You switched the siren off by hand more than 500 ms before getting out, so by the last sample it was already off. Let the ELS park-kill it.
+
+### Did the server accept it?
+
+```txt
+[tChirp][WARN] player 3 asked for sound "..." — refused
+```
+
+A refusal means the client and the server disagree about `config.lua` — almost always because the file was edited and only the client or only the server was restarted. `restart tChirp` restarts both.
+
+### Did the list arrive?
+
+```txt
+[tChirp][DEBUG] chirp list synced — 1 vehicle(s)
+```
+
+Zero here after a park kill means the add did not land. Look for the refusal line above it.
+
+### Are the front seats empty?
+
+Nothing chirps while somebody is in a front seat. Walk away from the car entirely and watch again.
+
+</Steps>
+
+## Only some vehicles chirp
+
+Almost always `Config.chirpAssignments`. A model with no entry never chirps, and that is by design.
+
+The other cause is a **malformed** entry, which is reported at startup by model name:
+
+```txt
+[tChirp] config.lua: Config.chirpAssignments["police2"] has no `sound` name.
+```
+
+If you upgraded from 1.0.0 and copied an example from the old GitBook page, check for `['police'] = 4` — a bare siren ID. That is not a shape any released tChirp reads. See [Configuration](/docs/tChirp/configuration#vehicle-assignments).
+
+## Every park chirps, even with the siren off
+
+A vehicle none of the providers claim falls through to `IsVehicleSirenOn`, and some ELS resources turn their siren "off" without telling the game engine — so the native check keeps reporting `true`.
+
+ALS is handled specifically for exactly this reason. If yours is a system tChirp does not know about, pin `Config.sirenSystem` to the closest match rather than leaving it on `auto`, or report the resource so it can be added.
+
+## The chirp never stops
+
+Getting into a **front** seat clears it. A rear seat does not, deliberately.
+
+If it survives that, the vehicle's network ID is on the list but the vehicle is gone — the server sweeps those every 5 seconds, so give it a moment. A list that never empties after that is worth reporting with the output of `tchirp_diag`.
+
+## Errors that name tLib
+
+### `requires tLib v0.8 or newer`
+
+Your tLib is older than tChirp needs. Update tLib. tChirp refuses to start rather than failing later in a way that blames the wrong file.
+
+### `No such export` or tChirp fails to start
+
+tLib was not started first. In `server.cfg`:
+
+```cfg
+ensure tLib
+ensure tChirp
+```
+
+### `attempt to index a function value`
+
+Almost always the same cause as above, reached a different way. tLib answers an unknown module name with a placeholder function rather than `nil`, so a tLib too old to carry a module tChirp uses fails on first use instead of at the version gate. Update tLib.
+
+## Configuration errors
+
+Anything tChirp refuses to start on prints the file, the key, what was expected, what was found and a fix. Two are worth naming:
+
+| Message | Cause |
+| --- | --- |
+| `Config.sirenSystem must be one of ...` | A provider name that does not exist. The list is in [Configuration](/docs/tChirp/configuration#siren-provider) |
+| `Config.chirpMinIntervalMs (...) is greater than Config.chirpMaxIntervalMs (...)` | An inverted range. Without this check it is a thread that dies silently and no chirps for the rest of the session |
+
+And two that are warnings rather than errors, so tChirp runs:
+
+| Message | Meaning |
+| --- | --- |
+| `has been renamed to ...` | A 1.0.0 key. Your value is still being used; rename it before 2.0.0 |
+| `is no longer used and does nothing` | `Config.LVCResourceName`. Delete it |

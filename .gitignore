@@ -1,0 +1,12 @@
+node_modules/
+*.log
+
+# Scratch. Same name in tRadar, tRadio, tDetector, tELS and tLib.
+.tmp/
+
+# Release archives. tChirp 1.0.0 shipped a committed `tChirp.zip` that was a
+# byte-for-byte copy of the four source files beside it, so the moment either
+# changed the repository held two versions of the resource and nothing said which
+# one a server had installed. Build output is produced from a tag, never tracked.
+.build/
+*.zip

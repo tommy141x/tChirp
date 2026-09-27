@@ -1,0 +1,96 @@
+---
+title: "Installation"
+description: "Install tChirp on your FiveM server: requirements, server.cfg load order, the one thing to check, and how to confirm a park kill chirps."
+order: 1
+group: "tChirp"
+---
+
+tChirp has one dependency, no database, no NUI and no build step. Nothing in it is escrow-packed, so the folder you download is the folder that runs.
+
+## Requirements
+
+| Requirement | Detail |
+| --- | --- |
+| [tLib](/docs/tLib) | **v0.8 or newer.** tChirp declares `tlib_min_version '0.8'` and refuses to start below it. Free |
+| A FiveM server | `lua54`, declared by tChirp itself |
+| A siren system | Any of the six below — or none, in which case tChirp reads the plain GTA siren |
+
+### Siren systems it reads
+
+| System | How it is detected | Needs a resource name? |
+| --- | --- | --- |
+| tELS | `exports[...]:IsSirenActive(vehicle)` | Yes — `Config.sirenResources.tels` |
+| JLS | `exports[...]:IsSirenActive(vehicle)` | Yes — `Config.sirenResources.jls` |
+| Luxart Vehicle Control | the `lvc:UpdateThirdParty` event | No |
+| LVC Fleet | the same event as LVC | No |
+| ELS-FiveM | the `els:setSirenState_c` event | No |
+| Advanced Lighting System | the four `ALS:*SirenClient` events | No |
+| Plain GTA siren | `IsVehicleSirenOn` | No |
+
+<Callout type="info" title="Only two of them are configurable, and that is not an omission">
+An export has to be called by name, so tELS and JLS carry one. An event arrives under its own name whatever the sending resource is called, so LVC, LVC Fleet, ELS-FiveM and ALS have nothing to configure and a renamed folder does not break them.
+</Callout>
+
+## Install
+
+<Steps>
+
+### Put the folder in place
+
+Extract it into `resources/`. The folder must be named exactly `tChirp` — its exports are published as `exports.tChirp`, and a FiveM resource is addressed by its folder name. No version suffix, exact casing.
+
+### Set the load order
+
+tLib must be ensured **before** tChirp.
+
+```cfg
+ensure tLib
+ensure tChirp
+```
+
+This is not optional ordering. Both of tChirp's script files take `tlib.logger` as they load, and `shared/config-spec.lua` validates your config at file scope, so tLib has to have started first. In the wrong order you get a `No such export` error instead.
+
+### Check your vehicle list
+
+Nothing chirps unless its model is listed in `Config.chirpAssignments`. tChirp ships with the eight base-game police models, which almost certainly are **not** what your server runs.
+
+```lua
+Config.chirpAssignments = {
+    ['police'] = { sound = 'VEHICLES_HORNS_POLICE_WARNING', ref = 0 },
+    -- add your own spawn names here
+}
+```
+
+This is also the on/off switch: a model with no entry never chirps, and an empty table means nothing chirps at all.
+
+### Start it and read the console
+
+```txt
+[tChirp][INFO] started — 8 vehicle model(s) configured, provider "auto"
+```
+
+If your config has a problem you get it here instead, one line per problem, each naming the key, what was expected, what was found and the fix. A configuration **error** stops tChirp from starting rather than letting it run on values you did not write.
+
+</Steps>
+
+## Confirm it works
+
+1. Get into a configured vehicle as the driver.
+2. Turn the siren on with your ELS.
+3. **Let the ELS park-kill it** — put the car in park and let the siren cut out on its own. Do not switch it off by hand.
+4. Get out and walk a few metres away.
+
+Within `chirpMinIntervalMs`–`chirpMaxIntervalMs` — 4 to 6 seconds by default — the car chirps, and keeps chirping until somebody sits in a front seat.
+
+If nothing happens, turn on `Config.debug` and read [Troubleshooting](/docs/tChirp/troubleshooting). With debug on, every decision tChirp makes prints a line.
+
+## Verifying a change
+
+tChirp's Lua runs under a Lua VM in CI and locally, which is unusual for a FiveM resource and is how a change to it is checked without a game server:
+
+```bash
+bun install
+bun run test:lua
+```
+
+Three suites: the config spec against the config file it validates, the six-provider cascade, and the server's list including what it refuses from a client.

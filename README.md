@@ -1,0 +1,71 @@
+# tChirp
+
+A park-kill chirp reminder for FiveM emergency vehicles.
+
+When a siren is **park killed** — silenced automatically because the car was put in park while still
+in pursuit mode — tChirp makes that car chirp at a randomised interval until somebody gets back in
+the front seat. It is the reminder tone several real departments run, and nothing else: tChirp never
+turns a siren on or off.
+
+Free, MIT-licensed, and not escrowed. There is no encrypted file in it.
+
+- Published documentation: <https://timmygstudios.com/docs/tChirp>
+- Requires [tLib](https://timmygstudios.com/docs/tLib) v0.8 or newer, which is also free
+
+## Layout
+
+| Path | What it is |
+| --- | --- |
+| `config.lua` | **The authority for every default.** Owner-edited; nothing here is required |
+| `shared/config-spec.lua` | Validates `config.lua` at startup, on both VMs, before any other chunk runs |
+| `client/cl_sirens.lua` | The six-provider siren cascade. Also exported as `IsSirenActive` |
+| `client/cl_chirp.lua` | Park-kill detection and chirp playback |
+| `server/sv_chirp.lua` | The parked-vehicle list, what it refuses from a client, and `tchirp_diag` |
+| `server/sv_version.lua` | The startup update check |
+| `docs/content/` | The **source** of the published documentation. See below |
+| `scripts/tests/` | Lua suites, run in a Lua VM without a game server |
+
+## Working on it
+
+```bash
+bun install
+bun run test:lua     # the three Lua suites
+bun run lint         # biome, over the TypeScript in scripts/
+bun run verify       # both
+```
+
+There is no native Lua interpreter on the development machine, and that turns out to be the only
+kind there isn't: `scripts/test-lua.ts` runs each suite under Fengari, a Lua VM that runs under bun.
+The shim in `scripts/run-lua-suite.lua` exists because Fengari's CLI can print an unhandled Lua
+error and still exit **zero**, which would report a suite that blew up on its first line as a pass.
+
+Suites are discovered off disk. A hardcoded list is the one way a runner fails silently — it keeps
+passing while the suite nobody added to it is the suite that would have caught the regression.
+
+| Suite | What it pins |
+| --- | --- |
+| `config-spec.lua` | The shipped config passes its own spec with zero errors and zero warnings; every default matches `config.lua` literal for literal; the inverted-range and assignment-shape rules; a 1.0.0 config still works |
+| `sirens.lua` | The three-state provider contract, including ALS's answer-`false`-not-`nil` rule and the ELS-FiveM sender filter |
+| `chirp-server.lua` | Everything the server refuses from a client, and the rate limiter |
+
+The stale-entry sweep in `sv_chirp.lua` is **not** covered — its loop parks on its first `Wait`, and
+driving it would mean asserting that a stub schedules correctly rather than that the sweep is right.
+
+## Documentation
+
+`docs/content/*.mdx` is the **source**. `.gitea/workflows/docs.yml` mirrors it into
+`tWeb/src/content/docs/tChirp/` on every push to `main`, wholesale — `rm -rf` then copy — so a page
+edited in tWeb instead of here is a page the next sync silently deletes.
+
+Checking documentation facts *here* rather than in tWeb is what makes checking them worth anything:
+every fact in those pages — the config options, the exports, the commands, the provider order —
+comes out of this resource. A doc goes stale because something changed here.
+
+⚠️ **There is no `docs/product.mdx`, deliberately.** The storefront page is authored in tWeb; adding
+one here would make the sync start overwriting it, silently. The workflow step is kept, with its
+absent-source guard, so that adding one later is a deliberate act.
+
+## Licence
+
+MIT — see [LICENSE](LICENSE). The licence covers the copy you have; it is not a statement about
+where the source is hosted.

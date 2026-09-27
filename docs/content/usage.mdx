@@ -1,0 +1,83 @@
+---
+title: "How it decides"
+description: "What tChirp treats as a park kill, why the siren is read a tick before the exit, the front-seat rule for arming and clearing a chirp, and what the server refuses from a client."
+order: 3
+group: "tChirp"
+---
+
+There is nothing to operate. tChirp has no keybind, no menu and no command an officer uses. This page is what it decides and when, because everything a server owner will ever ask about it is a question about one of these decisions.
+
+## What counts as a park kill
+
+Three things have to be true at the moment a player leaves a vehicle:
+
+1. They were in a **front seat** — driver or front passenger.
+2. The vehicle's **siren was on** as of the last check before they left.
+3. The vehicle's **model is in `Config.chirpAssignments`**.
+
+Then the vehicle goes on the chirp list, and every client near it starts chirping it at a randomised interval.
+
+## The siren is read before the exit, not after it
+
+Killing the siren is *part* of a park kill. By the time the player is out of the seat, every provider correctly reports the siren as off — so a check taken at that moment returns `false` every single time and nothing would ever chirp.
+
+So tChirp samples the siren every 500 ms while you are seated, and decides the exit against the **previous** sample.
+
+<Callout type="warning" title="The consequence, stated plainly">
+A siren switched off by hand and then left within the same 500 ms window still counts as a park kill. There is no way to tell the two apart after the fact: both look like "the siren was on a moment ago and the player is now outside". This is why the old documentation told testers to let LVC kill the siren rather than doing it themselves — it is the difference between testing the feature and testing the window.
+</Callout>
+
+## The front-seat rule
+
+The same rule arms a chirp and clears it: a **front seat**, driver or passenger.
+
+- Leaving a front seat with the siren on **arms** the chirp.
+- Taking a front seat in a chirping vehicle **clears** it, immediately, for everyone.
+- Nothing chirps while a front seat is occupied, even for the moment before the list catches up.
+
+This is tLib's shared occupancy rule, the same one tELS, tRadar and tRadio use, so "who is operating this vehicle" means the same thing across the whole set.
+
+<Callout type="info" title="Changed in 1.1.0">
+1.0.0 was asymmetric: **any** occupant leaving armed the chirp — including someone getting out of the back seat — while only the **driver** getting in cleared it. So a rear passenger stepping out could arm a car whose driver was still sitting in it, and stepping straight from one cruiser into another left the second one chirping with a driver at the wheel. Both edges now use the same rule.
+</Callout>
+
+## The chirp itself
+
+The chirp is played with `PlaySoundFromEntity` on the vehicle, which is a **client-side, positional** sound. Every client near the car plays it in their own world, so it gets quieter as you walk away and a server that emitted it once would emit it for nobody.
+
+Each chirp draws a fresh interval and a fresh duration from the configured ranges, so a row of parked cars does not fall into step. Every car's chirp is timed independently of the others.
+
+<Callout type="info" title="Also changed in 1.1.0">
+1.0.0 waited out each chirp's duration inside the loop that walks the list, which held every other car for the length of that chirp. With three cars parked, the second and third were each pushed later than the interval they had been given, every round. Each chirp now schedules its own stop.
+</Callout>
+
+## Providers, and the answer that is neither yes nor no
+
+Each provider answers one of three things about a vehicle: **on**, **off**, or **not mine**. Only "not mine" falls through to the next provider, and that is what lets one server run tELS cars and LVC cars at once.
+
+The distinction matters most in the other direction. ALS does not tell the game engine when it stops a siren, so on an ALS vehicle the plain `IsVehicleSirenOn` check reads `true` with the siren audibly off. Answering **off** rather than **not mine** for a vehicle ALS has claimed is what stops the cascade before it reaches that check and false-positives every park.
+
+## What the server refuses
+
+The park kill is noticed on the client that left the car, and the client tells the server. That means the message arrives from somewhere a player controls, so the server checks it against its own copy of `config.lua`:
+
+| The server can | It requires |
+| --- | --- |
+| see the vehicle and its model | the tone to be **exactly** the one that model is assigned. A different configured tone is refused, not corrected |
+| see the vehicle, and its model has no assignment | refused. An unconfigured model can never chirp |
+| not see the vehicle at all | the tone to be one of the tones this server has configured somewhere |
+
+That last row is a real state rather than a fault — a vehicle whose owner is mid-migration is briefly not in the server's view of the world — and refusing there would drop legitimate park kills.
+
+Both events are also rate-limited per player, at 12 per 10 seconds. Adding or removing a vehicle broadcasts the whole list to every client, so an unbounded event is an amplification primitive whether or not its payload passes.
+
+<Callout type="warning" title="Clearing a chirp is deliberately not ownership-checked">
+The officer who parks a car and the officer who takes it out are routinely different people, so a removal is accepted from anyone. The worst a forged one can do is stop a chirp early, which is a far smaller cost than leaving a car chirping under a driver sitting in it.
+</Callout>
+
+## Cleanup
+
+Two things take a vehicle off the list besides somebody getting in:
+
+- The server sweeps entries whose vehicle no longer exists, every 5 seconds, with a 5-second grace period so a freshly parked car is not swept before the server's view of the world catches up.
+- Stopping the resource stops and releases every sound it is playing.
