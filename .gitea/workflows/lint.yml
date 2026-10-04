@@ -8,3 +8,9 @@ jobs:
   lint:
     uses: TIMMYG-Studios/workflows/.gitea/workflows/lint.yml@main
     secrets: inherit
+    with:
+      # tChirp is Lua. The only TypeScript here is scripts/test-lua.ts, which
+      # has no tsconfig and is covered by running the suite it launches. The
+      # shared workflow now fails when it finds neither a `typecheck` script
+      # nor a root tsconfig, so this opt-out has to be explicit.
+      typecheck: false
