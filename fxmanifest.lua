@@ -25,7 +25,13 @@ dependency 'tLib'
 -- truthy export PROXY rather than nil, so a missing module is not caught by any
 -- `if tlib.occupancy` guard. It lands as "attempt to index a function value"
 -- partway down client/cl_chirp.lua instead of as "update tLib".
-tlib_min_version '0.8'
+--
+-- 0.14 for `diag.command`: `tchirp_diag` is built from it at FILE SCOPE in
+-- server/sv_chirp.lua, so the same export-proxy failure applies — a lower floor
+-- lands as "attempt to index a function value" while that script loads. This is
+-- the first evidenced floor above 0.8 for this resource. tLib 0.14.0 MUST be
+-- released before this pin ships.
+tlib_min_version '0.14'
 
 tlib_modules {
     -- Eager on purpose: shared/config-spec.lua validates at FILE scope, which is
@@ -44,6 +50,12 @@ tlib_modules {
     -- module's documented shape for a consumer that already has one, rather
     -- than asking it to spawn a second thread.
     'occupancy',
+    -- `tchirp_diag` is tlib.diag.command, called at FILE SCOPE in
+    -- server/sv_chirp.lua. Eager for the same export-proxy reason as the rest,
+    -- plus a sharper one: every caller of diag is ALREADY on a failure path, so
+    -- a lazy load that failed there would replace the explanation with a
+    -- second, more confusing error.
+    'diag',
 }
 
 shared_scripts {

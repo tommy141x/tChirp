@@ -222,47 +222,60 @@ end)
 -- thing it must never do is require a module a given tLib might not carry in
 -- order to answer "why is my install not working".
 
-RegisterCommand('tchirp_diag', function(src)
-    local function reply(line)
-        if src == 0 then print(line) else TriggerClientEvent('chat:addMessage', src, { args = { 'tChirp', line } }) end
-    end
+-- ── What used to be in this file ────────────────────────────────────────────
+--
+-- The command's shape — the ACE gate, the pcall guard, the redactor and the
+-- routing — is `tlib.diag.command` as of tLib 0.14.0. Eight resources had
+-- written it by hand, and this copy had the ACE gate and none of the other
+-- three. The redactor is the one that mattered: it had none, on the unstated
+-- grounds that tChirp's config holds no credentials. That is the assumption
+-- tDetector's own comment calls unsafe over time, because the guarded failure
+-- is a key added later by somebody who did not read §13 — and tLib's redactor
+-- is derived from the config rather than hand-listed, so it does not have to
+-- stay true.
+--
+-- The routing is now the union rather than a choice between console and chat:
+-- the server console always, because that is the copy that survives the caller
+-- disconnecting, and the caller too when there was one.
 
-    -- The snapshot, not the live table: `tlib.config.configured` returns what the
-    -- file said at boot, before anything could have mutated it.
-    --
-    -- Type-checked rather than called: `tlib_min_version '0.8'` is the floor for
-    -- `occupancy`, and which release added `configured` is not recorded anywhere
-    -- this repo can read. tLib's export proxy does not cover this — the proxy is
-    -- for an unknown `tlib.<module>`, and `config` resolves to a real module
-    -- table, so a missing function here is a plain nil and calling it would throw
-    -- inside the one command an owner runs when their install is already broken.
-    -- The live table is a correct, slightly weaker answer to the same question.
-    local configFns = tlib.config
-    local configured = (type(configFns.configured) == 'function' and configFns.configured('config.lua'))
-        or Config
+tlib.diag.command({
+    name = 'tchirp_diag',
+    title = 'tChirp diagnostics',
+    spec = tchirpConfigSpec,
+    report = function(ctx)
+        -- The snapshot, not the live table: `tlib.config.configured` returns what the
+        -- file said at boot, before anything could have mutated it.
+        --
+        -- Type-checked rather than called: which release added `configured` is not
+        -- recorded anywhere this repo can read, and tLib's export proxy does not
+        -- cover it — the proxy is for an unknown `tlib.<module>`, and `config`
+        -- resolves to a real module table, so a missing function here is a plain
+        -- nil and calling it would throw inside the one command an owner runs when
+        -- their install is already broken. The live table is a correct, slightly
+        -- weaker answer to the same question.
+        --
+        -- ⚠️ tlib.diag.command's pcall would now CATCH that throw and still print
+        -- the rest of the report, so this guard is no longer what keeps the command
+        -- alive. It is kept because the weaker answer is a better outcome than half
+        -- a report plus a failure line.
+        local configFns = tlib.config
+        local configured = (type(configFns.configured) == 'function' and configFns.configured('config.lua'))
+            or Config
 
-    local models = 0
-    for _ in pairs(Config.chirpAssignments) do models = models + 1 end
-    local parked = 0
-    for _ in pairs(chirpVehicles) do parked = parked + 1 end
+        local parked = 0
+        for _ in pairs(chirpVehicles) do parked = parked + 1 end
 
-    reply(('tChirp %s — tLib %s')
-        :format(GetResourceMetadata(GetCurrentResourceName(), 'version', 0) or '?',
-            GetResourceMetadata('tLib', 'version', 0) or 'not installed'))
-    reply(('siren provider: %s'):format(tostring(configured.sirenSystem)))
-    reply(('interval %d-%d ms, duration %d-%d ms')
-        :format(configured.chirpMinIntervalMs, configured.chirpMaxIntervalMs,
-            configured.chirpMinDurationMs, configured.chirpMaxDurationMs))
-    reply(('%d model(s) configured, %d vehicle(s) currently chirping'):format(models, parked))
+        ctx.line('tChirp %s — tLib %s', ctx.meta(GetCurrentResourceName()), ctx.meta('tLib'))
+        ctx.line('siren provider: %s', tostring(configured.sirenSystem))
+        ctx.line('interval %d-%d ms, duration %d-%d ms',
+            configured.chirpMinIntervalMs, configured.chirpMaxIntervalMs,
+            configured.chirpMinDurationMs, configured.chirpMaxDurationMs)
+        ctx.line('%d model(s) configured, %d vehicle(s) currently chirping',
+            ctx.count(Config.chirpAssignments), parked)
 
-    local report = tlib.config.validate(configured, tchirpConfigSpec)
-    if report.ok and #report.warnings == 0 then
-        reply('config.lua: no problems')
-    else
-        for _, message in ipairs(report.warnings) do reply(message) end
-        for _, message in ipairs(report.errors) do reply(message) end
-    end
-end, true)
+        ctx.messages(tlib.config.validate(configured, tchirpConfigSpec))
+    end,
+})
 
 -- ── Startup ───────────────────────────────────────────────────────────────
 

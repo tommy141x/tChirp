@@ -74,6 +74,11 @@ print = function(...)
 end
 
 tlib.config = dofile(path('../tLib/shared/imports/config/shared.lua'))
+-- The real module off disk, not a stub: `tchirp_diag` is built from
+-- tlib.diag.command at FILE SCOPE in sv_chirp.lua, so a stub would let a change
+-- that broke that call pass this suite. tLib/tests/lua/diag-command.lua is the
+-- oracle for what the command itself does.
+tlib.diag = dofile(path('../tLib/shared/imports/diag/shared.lua'))
 dofile(path('config.lua'))
 dofile(path('shared/config-spec.lua'))
 dofile(path('server/sv_chirp.lua'))
