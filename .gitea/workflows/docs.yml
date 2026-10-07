@@ -46,6 +46,24 @@ jobs:
         with:
           fetch-depth: 1
 
+      # ⚠️ BEFORE the tWeb checkout, so a bad page cannot be pushed at all.
+      #
+      # This job replaces src/content/docs/tChirp/ in tWeb wholesale and pushes.
+      # tWeb's own CI then runs — AFTER the commit has landed — so without this
+      # step the first thing to notice a broken cross-page anchor is the live
+      # site. tChirp's pages carry four of those links, which is exactly what a
+      # renamed heading silently breaks.
+      #
+      # No `bun install`: check-docs.mjs imports only node builtins, deliberately,
+      # so this step is a checkout and a run. Same property as secrets.yml.
+      - name: Set up bun
+        uses: https://github.com/oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Every page has frontmatter and every link resolves
+        run: bun scripts/check-docs.mjs
+
       - name: Checkout tWeb (docs target)
         uses: https://github.com/actions/checkout@v4
         with:

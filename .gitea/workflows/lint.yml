@@ -9,8 +9,21 @@ jobs:
     uses: TIMMYG-Studios/workflows/.gitea/workflows/lint.yml@main
     secrets: inherit
     with:
-      # tChirp is Lua. The only TypeScript here is scripts/test-lua.ts, which
-      # has no tsconfig and is covered by running the suite it launches. The
-      # shared workflow now fails when it finds neither a `typecheck` script
-      # nor a root tsconfig, so this opt-out has to be explicit.
+      # tChirp is Lua. Every TypeScript file here is BUILD-TIME TOOLING —
+      # scripts/{test-lua,check-syntax,prod}.ts and scripts/check-docs.mjs — and
+      # none of it ships: scripts/ is absent from prod.ts's include allowlist, so
+      # a type error in it cannot reach a server. Each one is also executed by
+      # `bun run verify` on every change, which is a stronger check on four files
+      # than `tsc --noEmit` is.
+      #
+      # tRadar and tRadio DO carry `typecheck:scripts` with a scripts/tsconfig.json,
+      # and the reason is specific to them: their scripts import `@tlib/shared/*`
+      # through a path alias, which only resolves with a tsconfig, so a bare `tsc`
+      # was failing on modules that work fine at runtime. tChirp's four scripts use
+      # no alias — prod.ts reaches tLib by relative path — so there is no alias for
+      # a tsconfig to declare and nothing for the gate to catch that running them
+      # does not already catch.
+      #
+      # The shared workflow fails when it finds neither a `typecheck` script nor a
+      # root tsconfig, so this opt-out has to be explicit.
       typecheck: false
