@@ -13,4 +13,13 @@ tlib.versioncheck({
     current = current,
     author  = 'TIMMYG Studios',
     fetch   = tlib.versioncheck.studios('tChirp', current),
+    -- The two facts a healthy boot is worth reporting, fired by sv_chirp.lua's
+    -- onResourceStart. NOT `required`: a config.lua with errors stops that file
+    -- before it registers anything, and a banner that refuses to draw because a
+    -- row is absent is worse than a missing row -- on exactly the install that
+    -- most needs the version check to still be readable.
+    info    = {
+        { key = 'Models', event = 'tchirp:vcInfo:models' },
+        { key = 'Sirens', event = 'tchirp:vcInfo:sirens' },
+    },
 })

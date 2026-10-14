@@ -8,55 +8,26 @@ author 'Tommy Johnston'
 -- studio banner only when the CALLING resource's manifest carries an author
 -- equal to 'TIMMYG Studios'. Folder name and opts.name do not count.
 author 'TIMMYG Studios'
-version '1.1.0'
+version '2.0.0'
 
 lua54 'yes'
 
 dependency 'tLib'
 
--- 0.8, and the module that sets the floor is `occupancy` — the shared front-seat
--- rule tELS, tRadar and tRadio use, which tRadar's own manifest records as
--- having arrived in tLib 0.8. `config`, `logger` and `versioncheck` all predate
--- it (tAFK pins 0.8 with logger; tRadar names 0.6 as the floor for `assets`),
--- so 0.8 is the highest evidenced floor rather than a round number.
+-- 1.0 — the first tLib that carries `occupancy` and `diag.command`, both of
+-- which this resource is now configuration for. There is no lower floor to
+-- express: 0.6 is the only earlier tLib ever released, and it has neither.
 --
 -- A floor that is too LOW is the failure this line exists to prevent, not one
 -- that is too high: tLib's imports.lua answers an unknown module name with a
 -- truthy export PROXY rather than nil, so a missing module is not caught by any
 -- `if tlib.occupancy` guard. It lands as "attempt to index a function value"
--- partway down client/cl_chirp.lua instead of as "update tLib".
---
--- 0.14 for `diag.command`: `tchirp_diag` is built from it at FILE SCOPE in
--- server/sv_chirp.lua, so the same export-proxy failure applies — a lower floor
--- lands as "attempt to index a function value" while that script loads. This is
--- the first evidenced floor above 0.8 for this resource. tLib 0.14.0 MUST be
--- released before this pin ships.
-tlib_min_version '0.14'
+-- partway down client/cl_chirp.lua — and for `diag.command`, which builds
+-- `tchirp_diag` at FILE SCOPE in server/sv_chirp.lua, while that script loads —
+-- instead of as "update tLib". The gate in @tLib/imports.lua runs before any
+-- consumer script, which is what makes it the only place that can say the latter.
+tlib_min_version '1.0'
 
-tlib_modules {
-    -- Eager on purpose: shared/config-spec.lua validates at FILE scope, which is
-    -- the whole point of it — every later chunk reads a Config that has already
-    -- been checked and had its gaps filled.
-    'config',
-    -- Eager for the same reason: both cl_chirp.lua and sv_chirp.lua take
-    -- tlib.logger.create at file scope.
-    'logger',
-    -- server/sv_version.lua calls tlib.versioncheck. Listing it only makes the
-    -- load eager; it would lazy-load either way. Declared so the manifest is an
-    -- honest inventory of what this resource uses.
-    'versioncheck',
-    -- The shared front-seat rule. client/cl_chirp.lua takes tlib.occupancy at
-    -- FILE scope and drives it with `occupancy.poll()` from its own loop — the
-    -- module's documented shape for a consumer that already has one, rather
-    -- than asking it to spawn a second thread.
-    'occupancy',
-    -- `tchirp_diag` is tlib.diag.command, called at FILE SCOPE in
-    -- server/sv_chirp.lua. Eager for the same export-proxy reason as the rest,
-    -- plus a sharper one: every caller of diag is ALREADY on a failure path, so
-    -- a lazy load that failed there would replace the explanation with a
-    -- second, more confusing error.
-    'diag',
-}
 
 shared_scripts {
     '@tLib/imports.lua',
@@ -72,9 +43,19 @@ client_scripts {
     -- cascade registers its event handlers at file scope.
     'client/cl_sirens.lua',
     'client/cl_chirp.lua',
+    -- Last: /tchirp's dialog reads the globals both files above declare
+    -- (tchirpAssignmentFor, tchirpNearestChirping, tchirpResolvedProvider).
+    -- Only at runtime, inside the command handler, so the order is for
+    -- readability rather than correctness -- but it also means a load failure
+    -- here cannot take the chirp loop itself down.
+    'client/cl_menu.lua',
 }
 
 server_scripts {
+    -- Before sv_chirp.lua, whose add handler calls tchirpMayChirp. The gate is
+    -- built at file scope from Config.access, so after shared/config-spec.lua --
+    -- every shared_script is.
+    'server/sv_access.lua',
     'server/sv_chirp.lua',
     'server/sv_version.lua',
 }

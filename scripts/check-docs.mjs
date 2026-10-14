@@ -103,10 +103,15 @@ if (mdxFiles.length === 0) {
 }
 
 /**
- * Heading → anchor id. Close enough to the site's github-slugger to catch real
- * broken links. ⚠️ `/` and em dashes produce DOUBLE hyphens there; the
- * `[^a-z0-9\s-]` strip below drops them entirely rather than hyphenating, so a
- * heading containing one is the known imprecision of this copy.
+ * Heading → anchor id, matching the site's github-slugger.
+ *
+ * The order of the last two steps is the whole thing, and getting it backwards is
+ * how this check reports a WORKING link as broken. github-slugger drops the
+ * stripped characters and then replaces each REMAINING space one at a time — so
+ * `## \`/tunit\` — the driver menu` leaves two adjacent spaces where the em dash
+ * was and the real anchor is `tunit--the-driver-menu`, with two hyphens. A
+ * `\s+ → -` collapse produces the single-hyphen form, which exists nowhere.
+ * Underscores survive, so `tunit_diag` is `#tunit_diag`.
  */
 function slugify(heading) {
   return heading
@@ -115,9 +120,9 @@ function slugify(heading) {
     .replace(/\*\*([^*]*)\*\*/g, "$1")
     .replace(/\*([^*]*)\*/g, "$1")
     .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, "")
     .trim()
-    .replace(/\s+/g, "-");
+    .replace(/[^a-z0-9 _-]/g, "")
+    .replace(/ /g, "-");
 }
 
 const pages = new Map();
@@ -272,29 +277,50 @@ if (CONTROL && DEAD.size === 0) {
       `${anchorLinks} cross-page anchor link(s)\n`
   );
 
+  // Case 3's expectation is arithmetic on case 2's result, so the cases run in
+  // order and each predicate may read what the ones before it measured.
+  const seen = {};
+
   const cases = [
     [
       "frontmatter",
-      `all ${mdxFiles.length} pages must fail for having none`,
+      () => `all ${mdxFiles.length} pages must fail for having none`,
       (r) => r.errors >= mdxFiles.length && r.exit === 1,
     ],
     [
       "heading",
-      `no anchors are collected, so all ${anchorLinks} cross-page anchor links must break`,
+      () => `no anchors are collected, so all ${anchorLinks} cross-page anchor links must break`,
       (r) => r.errors >= anchorLinks && r.exit === 1,
     ],
     [
       // Both dead. `heading` plants the defect, and removing `page` must make the
-      // gate blind to it — which is the only way to tell a working `page` scanner
-      // from a dead one on docs that are clean.
+      // gate blind to EXACTLY the cross-page half of it — which is the only way to
+      // tell a working `page` scanner from a dead one on docs that are clean.
+      //
+      // NOT "must report 0". `heading` also breaks every IN-PAGE `](#anchor)`
+      // link, and `page` never looked at those — so on a resource that has some,
+      // a perfectly working `page` kill still leaves them behind. Requiring 0
+      // reports NOT MEASURED on tAFK (4 left) and tUnit (4 left) while the
+      // scanner is doing its job, and passes on tChirp and tBlips only because
+      // neither has an in-page link.
+      //
+      // The honest quantity is the DROP, and it must equal anchorLinks exactly:
+      // fewer means `page` is still finding some of them, more means it took
+      // something that was never its to take.
       "heading,page",
-      `with the anchors still missing, killing \`page\` must hide all ${anchorLinks} of them`,
-      (r) => r.errors === 0 && r.exit === 0,
+      () =>
+        `with the anchors still missing, killing \`page\` must hide exactly the ` +
+        `${anchorLinks} cross-page one(s) and leave the ` +
+        `${seen.heading.errors - anchorLinks} in-page one(s)`,
+      (r) =>
+        r.errors === seen.heading.errors - anchorLinks && r.exit === (r.errors > 0 ? 1 : 0),
     ],
   ];
 
-  for (const [dead, why, holds] of cases) {
+  for (const [dead, whyOf, holds] of cases) {
     const measured = run(dead);
+    seen[dead] = measured;
+    const why = whyOf();
     if (holds(measured)) {
       console.log(`  as required  \`${dead}\` dead → ${why} (${measured.errors} error(s))`);
     } else {

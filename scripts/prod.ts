@@ -63,6 +63,7 @@ const INCLUDE = [
   "shared/config-spec.lua",
   "client/cl_sirens.lua",
   "client/cl_chirp.lua",
+  "server/sv_access.lua",
   "server/sv_chirp.lua",
   "server/sv_version.lua",
 ];
