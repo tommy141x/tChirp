@@ -46,12 +46,18 @@ function NetworkGetEntityFromNetworkId(netId) return world[netId] and netId or 0
 function DoesEntityExist(entity) return world[entity] ~= nil end
 function GetEntityModel(entity) return world[entity] end
 
+-- `retiredBroadcasts` counts the `tChirp:` spelling, which must now be ZERO:
+-- dual-firing an outbound name doubled every "did this re-broadcast?" count for
+-- anyone listening to both.
 local broadcasts = 0
+local retiredBroadcasts = 0
 local lastList = nil
 function TriggerClientEvent(event, target, payload)
-    if event == 'tChirp:SyncChirpList' then
+    if event == 'tchirp:SyncChirpList' then
         broadcasts = broadcasts + 1
         if target == -1 then lastList = payload end
+    elseif event == 'tChirp:SyncChirpList' then
+        retiredBroadcasts = retiredBroadcasts + 1
     end
 end
 
@@ -79,11 +85,64 @@ tlib.config = dofile(path('../tLib/shared/imports/config/shared.lua'))
 -- that broke that call pass this suite. tLib/tests/lua/diag-command.lua is the
 -- oracle for what the command itself does.
 tlib.diag = dofile(path('../tLib/shared/imports/diag/shared.lua'))
+-- Also the real module, and for the same reason: sv_chirp.lua reports the rate
+-- floor and the client/server assignment disagreement through
+-- `tlib.telemetry.warn`, and both are paths this suite deliberately walks. A
+-- stub would let a change to either call site pass; without it the suite dies
+-- with "attempt to index a nil value (field 'telemetry')" from inside the
+-- handler under test.
+--
+-- `GetCurrentResourceName` first: `Telemetry.warn` prints its local line
+-- through that native UNGUARDED, so a harness that omits it gets "attempt to
+-- call a nil value" the first time a warning carries a message. It is a real
+-- global in every runtime this ships to; only fengari lacks it. Everything else
+-- at the module's file scope is already guarded by `type(x) == 'function'`.
+if GetCurrentResourceName == nil then
+    function GetCurrentResourceName() return 'tChirp' end
+end
+tlib.telemetry = dofile(path('../tLib/shared/imports/telemetry/shared.lua'))
 dofile(path('config.lua'))
 dofile(path('shared/config-spec.lua'))
+-- tlib.access, THE REAL MODULE, and sv_access.lua on top of it. The gate is the
+-- only thing between a client and the chirp list, and a stub gate is a stub of
+-- the one decision in this resource worth getting wrong. `demo` and `permission`
+-- are stubbed because they are tLib's own and have their own tests; `telemetry`
+-- is already real above.
+tlib.demo = { active = function() return false end }
+local acePrincipals = {}
+tlib.permission = {
+    has = function(src, key) return (acePrincipals[src] or {})[key] == true end,
+    isAdmin = function() return false end,
+}
+-- `access` loads its framework/inventory adapter table through
+-- LoadResourceFile, and fengari has no `io.open` to read it off disk with. Nil,
+-- which the module handles: both lists come back empty and detection answers
+-- "none".
+--
+-- So this suite asserts the `everyone` and `ace` modes ONLY. `job` and `item`
+-- would pass here vacuously -- they deny with no adapter -- and asserting them
+-- against an empty registry would be asserting nothing. tLib's own tests own the
+-- adapters; what tChirp has to get right is which handler consults the gate.
+function LoadResourceFile() return nil end
+tlib.access = dofile(path('../tLib/shared/imports/access/server.lua'))
+dofile(path('server/sv_access.lua'))
+
 dofile(path('server/sv_chirp.lua'))
 
-print = realPrint
+-- `print` stays RECORDING past the load: several assertions below read a
+-- warning out of `printed` that is emitted when a handler RUNS, not at load.
+--
+-- From here on it also FORWARDS, which the load-time version deliberately does
+-- not: a swallowing `print` left installed eats the error message on a failing
+-- run, because scripts/run-lua-suite.lua reports through `print` too. The quiet
+-- half is only wanted across the config check, whose output is expected.
+print = function(...)
+    local parts = {}
+    for i = 1, select('#', ...) do parts[i] = tostring((select(i, ...))) end
+    local line = table.concat(parts, '	')
+    printed[#printed + 1] = line
+    realPrint(line)
+end
 
 local function check(condition, message)
     if not condition then
@@ -100,18 +159,18 @@ local CONFIGURED = Config.chirpAssignments['police']
 
 local function add(src, netId, cfg)
     source = src
-    netHandlers['tChirp:AddChirpVehicle'](netId, cfg)
+    netHandlers['tchirp:AddChirpVehicle'](netId, cfg)
 end
 local function remove(src, netId)
     source = src
-    netHandlers['tChirp:RemoveChirpVehicle'](netId)
+    netHandlers['tchirp:RemoveChirpVehicle'](netId)
 end
 local function listed(netId)
     source = 1
     local captured
     local realTrigger = TriggerClientEvent
     TriggerClientEvent = function(_, _, payload) captured = payload end
-    netHandlers['tChirp:RequestChirpList']()
+    netHandlers['tchirp:RequestChirpList']()
     TriggerClientEvent = realTrigger
     return captured[netId] ~= nil
 end
@@ -228,4 +287,102 @@ world[500] = SULTAN
 add(1, 500, { sound = CONFIGURED.sound, ref = CONFIGURED.ref })
 check(not listed(500), 'a model with no assignment was added to the chirp list')
 
+-- ── The list goes out under ONE spelling ──────────────────────────────────
+--
+-- `tChirp:SyncChirpList` and the five other `tChirp:` names are gone. A
+-- listener subscribed to both spellings saw every event twice, which is why
+-- only the canonical one was ever documented.
+
+newWindow()
+broadcasts, retiredBroadcasts = 0, 0
+world[600] = POLICE
+add(1, 600, { sound = CONFIGURED.sound, ref = CONFIGURED.ref })
+check(broadcasts > 0, 'the sync no longer goes out under its canonical name')
+check(retiredBroadcasts == 0,
+    'the retired `tChirp:SyncChirpList` is still being fired, so a resource listening to '
+    .. 'both names sees every sync twice')
+
+-- ── And the retired INBOUND names are not registered at all ───────────────
+--
+-- Not merely undocumented: absent. A handler left registered under the old name
+-- is a second way into the same state that nobody is testing, and whoever is
+-- still firing it would never find out they had to change.
+
+for _, retired in ipairs({ 'tChirp:AddChirpVehicle', 'tChirp:RemoveChirpVehicle',
+                           'tChirp:RequestChirpList' }) do
+    check(netHandlers[retired] == nil,
+        retired .. ' is still registered; the retired spellings are gone in 2.0.0')
+end
+
+-- ...and the canonical ones are, so the check above is not vacuously true.
+for _, canonical in ipairs({ 'tchirp:AddChirpVehicle', 'tchirp:RemoveChirpVehicle',
+                             'tchirp:RequestChirpList' }) do
+    check(netHandlers[canonical] ~= nil,
+        canonical .. ' is not registered -- the retired-name assertions above would pass '
+        .. 'for the wrong reason')
+end
+
+-- ── The access gate ────────────────────────────────────────────────────────
+--
+-- THE SHIPPED DEFAULT MUST NOT CHANGE WHO CAN CHIRP. tChirp has never had a
+-- use gate, so `mode = "everyone"` is what every install already does; closing
+-- the gate here would break all of them.
+
+local report = tchirpAccessReport()
+check(report.modes[1] == 'everyone' and #report.modes == 1,
+    'the shipped Config.access is not "everyone", so this release changes who can chirp')
+check(not report.broken, 'the shipped access block does not validate')
+check(Config.access.ace == 'tchirp.use',
+    'the documented ace object is not `tchirp.use`; a server.cfg line is copied literally')
+
+-- The gate itself decides. Switched to `ace`, a player without the grant is
+-- refused and a player with it is not.
+Config.access.mode = 'ace'
+local aceGate = tlib.access.gate(Config.access, { key = 'chirpprobe', label = 'the chirp list' })
+check(aceGate:allowed(1) == false, 'the ace gate admitted a player holding nothing')
+acePrincipals[2] = { ['tchirp.use'] = true }
+check(aceGate:allowed(2) == true, '`tchirp.use` did not admit the player it was granted to')
+Config.access.mode = 'everyone'
+
+-- AND THE ADD HANDLER ACTUALLY CONSULTS IT. The two assertions above pass
+-- perfectly well on a resource that builds a gate and never asks it: deleting
+-- the `tchirpMayChirp` line from sv_chirp.lua leaves them green. The live gate
+-- cannot be swung from here -- its mode list is a snapshot taken at
+-- construction -- so the global the handler calls is what gets swapped.
+local realMayChirp = tchirpMayChirp
+local asked = {}
+local allowChirp = true
+function tchirpMayChirp(src)
+    asked[#asked + 1] = src
+    return allowChirp
+end
+
+newWindow()
+world[950] = POLICE
+allowChirp = false
+add(4, 950, { sound = CONFIGURED.sound, ref = CONFIGURED.ref })
+check(not listed(950), 'a player the gate refused still put a car on the chirp list')
+check(asked[#asked] == 4, 'the gate was asked about the wrong player, or not asked at all')
+
+allowChirp = true
+add(4, 950, { sound = CONFIGURED.sound, ref = CONFIGURED.ref })
+check(listed(950), 'a player the gate allowed could not chirp')
+
+allowChirp = true
+tchirpMayChirp = realMayChirp
+
+-- And the two OPEN events stay open. Gating these would be the easy mistake:
+-- every client runs the playback, so a gate on the read means a civilian beside
+-- a chirping patrol car hears silence, and a gate on the remove makes
+-- cl_chirp.lua's optimistic local clear lie to the player.
+check(netHandlers['tchirp:RequestChirpList'] ~= nil, 'the list request stopped being registered')
+newWindow()
+world[900] = POLICE
+add(1, 900, { sound = CONFIGURED.sound, ref = CONFIGURED.ref })
+remove(2, 900)
+check(not listed(900),
+    'a player other than the one who parked the car could not silence it; the remove handler '
+    .. 'has grown an ownership or permission check it is documented not to have')
+
+print = realPrint
 print('PASS chirp-server.lua')

@@ -19,7 +19,7 @@ if Config.debug then tlib.logger.setLevel(tlib.logger.DEBUG) end
 local chirpVehicles = {}
 
 local function broadcast()
-    TriggerClientEvent('tChirp:SyncChirpList', -1, chirpVehicles)
+    TriggerClientEvent('tchirp:SyncChirpList', -1, chirpVehicles)
 end
 
 -- ── What a client is allowed to ask for ───────────────────────────────────
@@ -104,6 +104,15 @@ local function withinRate(src)
         if bucket.count == RATE_MAX + 1 then
             log(('player %d is sending chirp events faster than %d per %ds; dropping the rest')
                 :format(src, RATE_MAX, RATE_WINDOW_MS / 1000), tlib.logger.WARN)
+            -- A LIMIT warning, on the same once-per-window edge as the log line
+            -- above and for the same reason: reporting per dropped event would
+            -- move the flood into the telemetry buffer. No player id in the
+            -- code -- the code is the grouping key, and a per-player code would
+            -- make every flood its own group of one. The rate of this across
+            -- installs is the only way to tell a floor that is working from one
+            -- set below what ordinary play produces.
+            tlib.telemetry.warn('chirp.rate.exceeded', 'limit',
+                ('a client exceeded %d chirp events per %ds'):format(RATE_MAX, RATE_WINDOW_MS / 1000))
         end
         return false
     end
@@ -116,7 +125,7 @@ end)
 
 -- ── Events ────────────────────────────────────────────────────────────────
 
-RegisterNetEvent('tChirp:AddChirpVehicle', function(netId, soundCfg)
+RegisterNetEvent('tchirp:AddChirpVehicle', function(netId, soundCfg)
     local src = source
 
     if type(netId) ~= 'number' or netId <= 0 or netId % 1 ~= 0 then return end
@@ -126,6 +135,12 @@ RegisterNetEvent('tChirp:AddChirpVehicle', function(netId, soundCfg)
         return
     end
     if not withinRate(src) then return end
+    -- AFTER the shape checks and the rate floor: on a job- or item-gated
+    -- server `tlib.access` reaches into a framework's core object or an
+    -- inventory, and neither a malformed payload nor a flood should be able to
+    -- make the server do that. See server/sv_access.lua for why only this
+    -- handler is gated.
+    if not tchirpMayChirp(src) then return end
     if chirpVehicles[netId] then return end
 
     -- The strong check first: the model this server can see decides the tone,
@@ -137,6 +152,20 @@ RegisterNetEvent('tChirp:AddChirpVehicle', function(netId, soundCfg)
             log(('player %d asked for sound "%s" on netId %d, whose model is assigned "%s" — refused')
                 :format(src, tostring(soundCfg.sound), netId, tostring(expected.sound)),
                 tlib.logger.WARN)
+            -- A COMPATIBILITY warning, and the only one of this handler's three
+            -- refusals that is one. The other two are an owner's
+            -- Config.chirpAssignments not covering a model or a sound: operator
+            -- misconfiguration, which belongs to tlib.diag -- a store that
+            -- cannot delete a row must not fill with those.
+            --
+            -- Here client and server both HAVE an assignment for the model and
+            -- disagree about it, which means a client running a different
+            -- Config -- a restart that reloaded only one side, or a stale
+            -- cached config. A refusal that only logs hides that from us.
+            --
+            -- Neither sound name goes in the code: the code is the grouping key.
+            tlib.telemetry.warn('chirp.assignment.mismatch', 'compatibility',
+                'a client asked for a sound its model is not assigned; client and server configs disagree')
             return
         end
     elseif why == 'absent' then
@@ -160,7 +189,7 @@ RegisterNetEvent('tChirp:AddChirpVehicle', function(netId, soundCfg)
     broadcast()
 end)
 
-RegisterNetEvent('tChirp:RemoveChirpVehicle', function(netId)
+RegisterNetEvent('tchirp:RemoveChirpVehicle', function(netId)
     local src = source
     if type(netId) ~= 'number' or not chirpVehicles[netId] then return end
     if not withinRate(src) then return end
@@ -176,8 +205,8 @@ RegisterNetEvent('tChirp:RemoveChirpVehicle', function(netId)
     broadcast()
 end)
 
-RegisterNetEvent('tChirp:RequestChirpList', function()
-    TriggerClientEvent('tChirp:SyncChirpList', source, chirpVehicles)
+RegisterNetEvent('tchirp:RequestChirpList', function()
+    TriggerClientEvent('tchirp:SyncChirpList', source, chirpVehicles)
 end)
 
 -- ── Stale entry sweep ─────────────────────────────────────────────────────
@@ -225,7 +254,7 @@ end)
 -- ── What used to be in this file ────────────────────────────────────────────
 --
 -- The command's shape — the ACE gate, the pcall guard, the redactor and the
--- routing — is `tlib.diag.command` as of tLib 0.14.0. Eight resources had
+-- routing — is `tlib.diag.command` as of tLib 1.0. Eight resources had
 -- written it by hand, and this copy had the ACE gate and none of the other
 -- three. The redactor is the one that mattered: it had none, on the unstated
 -- grounds that tChirp's config holds no credentials. That is the assumption
@@ -266,6 +295,13 @@ tlib.diag.command({
         for _ in pairs(chirpVehicles) do parked = parked + 1 end
 
         ctx.line('tChirp %s — tLib %s', ctx.meta(GetCurrentResourceName()), ctx.meta('tLib'))
+        -- The gate's own description, not a re-reading of Config.access, so the
+        -- diagnostic cannot disagree with the decision. Guarded because
+        -- sv_access.lua is a separate file: an install missing it would
+        -- otherwise fail in the one command an owner runs to find out why.
+        if type(tchirpAccessDescribe) == 'function' then
+            ctx.line('who may chirp: %s', tchirpAccessDescribe())
+        end
         ctx.line('siren provider: %s', tostring(configured.sirenSystem))
         ctx.line('interval %d-%d ms, duration %d-%d ms',
             configured.chirpMinIntervalMs, configured.chirpMaxIntervalMs,
@@ -278,11 +314,18 @@ tlib.diag.command({
 })
 
 -- ── Startup ───────────────────────────────────────────────────────────────
+--
+-- Both facts go to the STARTUP BANNER rather than a log line of their own: the
+-- banner already is the one-line summary of a healthy boot, and a second line
+-- next to it is what makes consoles scroll past it.
+--
+-- Fired from onResourceStart because sv_version.lua -- which subscribes these
+-- events inside tlib.versioncheck -- loads after this file.
 
 AddEventHandler('onResourceStart', function(resource)
     if resource ~= GetCurrentResourceName() then return end
     local count = 0
     for _ in pairs(Config.chirpAssignments) do count = count + 1 end
-    log(('started — %d vehicle model(s) configured, provider "%s"')
-        :format(count, tostring(Config.sirenSystem)))
+    TriggerEvent('tchirp:vcInfo:models', ('%d vehicle model(s) configured'):format(count))
+    TriggerEvent('tchirp:vcInfo:sirens', tostring(Config.sirenSystem))
 end)

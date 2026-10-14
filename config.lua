@@ -1,60 +1,106 @@
--- =========================================================================
---  tChirp configuration
--- =========================================================================
---
---  THIS FILE IS THE AUTHORITY for every default below. It is the file you
---  read and edit, and the table in docs/content/configuration.mdx is written
---  from it.
---
---  `shared/config-spec.lua` restates the scalar defaults so that a key you
---  DELETE comes back as the value shipped here. It never overwrites a value
---  you actually set — a rejected value is reported and left alone.
---  `scripts/tests/config-spec.lua` asserts the two agree.
---
---  Nothing here is required. tChirp runs with zero edits.
--- =========================================================================
+--[[----------------------------------------------------------------------
+    TIMMYG Studios — tChirp 2.0.0
+    config.lua — the file you edit. It is the only one.
+
+    NOTHING HERE IS REQUIRED. tChirp runs with zero edits.
+
+    HOW TO EDIT: change values to the RIGHT of the = sign only. Keep the
+    commas, and do not remove the quotes around text.
+
+    APPLYING CHANGES: restart the resource. `ensure tChirp` in the server
+    console, or txAdmin > Resources > tChirp > Restart. Nothing here is read
+    again while the server runs.
+
+    IF SOMETHING IS WRONG: `shared/config-spec.lua` checks this file at boot.
+    Delete a key and it comes back as the value shipped here; set one to
+    something illegal and you get a line naming the key, the file and the
+    fix. Your file is never rewritten.
+
+    Docs: https://timmygstudios.com/docs/tChirp/configuration
+------------------------------------------------------------------------]]
 
 Config = {}
 
 -- =========================================================================
---  SIREN SYSTEM
+--  1. ACCESS — who may park-kill
+-- =========================================================================
+--  A tlib.access block. `mode` is "everyone", "ace", "job", "item" or
+--  "custom", or a list of them — any one passing opens the gate. Six
+--  frameworks and nine inventories resolve out of the box, as two
+--  INDEPENDENT questions, and every failure DENIES: an absent framework, an
+--  unset ace, a `custom` that errors.
+--
+--  AS SHIPPED, `mode = "everyone"` lets any player park-kill. To limit it to
+--  your police department:
+--
+--      Config.access = { mode = "ace" }
+--      -- and in server.cfg:
+--      add_ace group.police tchirp.use allow
+--
+--  THIS GATES ADDING A CHIRP ONLY. It does not control who can SILENCE one
+--  or who HEARS them: every client runs the playback, so gating the read
+--  would leave a civilian standing next to a chirping patrol car in
+--  silence.
+
+Config.access = {
+    mode = "everyone",
+
+    -- mode "ace":  add_ace group.police tchirp.use allow
+    ace  = "tchirp.use",
+
+    -- mode "job": job NAME = MINIMUM GRADE. `0` accepts any grade.
+    job  = { police = 0, sheriff = 0, statepolice = 0 },
+
+    -- mode "item".
+    item  = "police_radio",
+    count = 1,
+
+    -- mode "custom". Takes a player id, returns true to allow.
+    --   custom = function(playerId) return myCheck(playerId) end,
+    custom = nil,
+}
+
+-- =========================================================================
+--  2. SIREN SYSTEM
 -- =========================================================================
 --  Which siren provider tChirp asks whether the siren was on when you left
 --  the vehicle — the "park kill" trigger.
 --
---  'auto'      - cascade: tELS → LVC / LVC Fleet → ELS-FiveM → JLS → ALS → native
---  'tels'      - tELS only
---  'lvc'       - Luxart Vehicle Control only
---  'lvc_fleet' - LVC Fleet only
---  'els_fivem' - ELS-FiveM only
---  'jls'       - JLS only
---  'als'       - Advanced Lighting System only
---  'native'    - native GTA siren only
+--  'auto'      cascade: tELS → LVC / LVC Fleet → ELS-FiveM → JLS → ALS → native
+--  'tels'      tELS only
+--  'lvc'       Luxart Vehicle Control only
+--  'lvc_fleet' LVC Fleet only
+--  'els_fivem' ELS-FiveM only
+--  'jls'       JLS only
+--  'als'       Advanced Lighting System only
+--  'native'    native GTA siren only
 
 Config.sirenSystem = 'auto'
 
---  Only the EXPORT-based providers have a resource name here, because a name is
---  only needed to call an export. tELS and JLS are queried with
---  `exports[<name>]:IsSirenActive(vehicle)`.
+--  Change these ONLY if your tELS or JLS folder has been renamed. They are
+--  queried with `exports[<name>]:IsSirenActive(vehicle)`, so the name has to
+--  match the folder.
 --
---  LVC, LVC Fleet, ALS and ELS-FiveM are event-based — tChirp listens for
---  `lvc:UpdateThirdParty`, the four `ALS:*SirenClient` events and
---  `els:setSirenState_c`. An event arrives under its own name whatever the
---  sending resource is called, so there is nothing to configure and renaming
---  those resources does not break detection.
---
---  Only change these if your tELS or JLS folder has been renamed.
+--  LVC, LVC Fleet, ALS and ELS-FiveM are not listed here and do not need to
+--  be: they are detected by event (`lvc:UpdateThirdParty`, the four
+--  `ALS:*SirenClient` events, `els:setSirenState_c`), and an event keeps its
+--  own name however the sending resource is renamed.
 Config.sirenResources = {
     tels = 'tELS',
     jls  = 'Jace3483_JLS',
 }
 
 -- =========================================================================
---  CHIRP TIMING
+--  3. CHIRP TIMING
 -- =========================================================================
---  Both ranges are inclusive and are drawn fresh for every chirp. Setting a
---  minimum above its maximum is refused at startup rather than crashing the
---  chirp thread later — see shared/config-spec.lua.
+--  Milliseconds. Both ranges are inclusive and are drawn fresh for every
+--  chirp, so a gap of 4000-6000 means every chirp waits somewhere in that
+--  window rather than a fixed 5 seconds.
+--
+--  Each value must be at least 1: they go straight into math.random as the
+--  low bound, and a 0 ms gap is a chirp every frame. Setting a minimum above
+--  its maximum is refused at startup rather than crashing the chirp thread
+--  later.
 
 Config.chirpMinIntervalMs = 4000   -- Shortest gap between chirps
 Config.chirpMaxIntervalMs = 6000   -- Longest gap between chirps
@@ -62,7 +108,7 @@ Config.chirpMinDurationMs = 75     -- Shortest chirp
 Config.chirpMaxDurationMs = 125    -- Longest chirp
 
 -- =========================================================================
---  VEHICLE ASSIGNMENTS
+--  4. VEHICLE ASSIGNMENTS
 -- =========================================================================
 --  Key   : vehicle spawn/model name
 --  sound : native sound name passed to PlaySoundFromEntity
@@ -93,7 +139,7 @@ Config.chirpAssignments = {
 }
 
 -- =========================================================================
---  DIAGNOSTICS
+--  5. DIAGNOSTICS
 -- =========================================================================
 --  Lowers tChirp's log level to DEBUG on both VMs. Leave it off on a live
 --  server: a busy department produces a line per chirp per parked car.

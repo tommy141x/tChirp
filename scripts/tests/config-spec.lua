@@ -145,11 +145,14 @@ if not okWith({ chirpAssignments = {} }) then
     fail('an empty assignment table was rejected, though "nothing chirps" is a supported state')
 end
 
--- ── The 1.0.0 key names still work ──────────────────────────────────────────
+-- ── The 1.0.0 key names are NAMED at boot, not quietly dropped ──────────────
 --
--- config.lua is not escrow-packed and never was, so every existing server keeps
--- ITS copy across an update and every one of those copies uses the old spellings.
--- This is the assertion that 1.1.0 is a rename and not a silent reset to defaults.
+-- Nothing copies ChirpMinInterval onto chirpMinIntervalMs any more, and
+-- nothing should. config.lua is not escrow-packed and never was,
+-- so a server that kept ITS copy across the update is still on the old
+-- spellings and will fall back to the shipped timings. The ONLY thing that
+-- turns that from a silent reset into a fixable boot warning is the unknown-key
+-- check firing on every one of them, which is what this now asserts.
 
 local old = {
     ChirpMinInterval = 1000,
@@ -158,30 +161,31 @@ local old = {
     ChirpMaxDuration = 60,
     ChirpAssignments = { police = { sound = 'VEHICLES_HORNS_SIREN_1', ref = 0 } },
     Debug = true,
+    -- Never read even by 1.0.0; the published GitBook page documents it anyway,
+    -- so it is the likeliest key to be sitting in a real file.
+    LVCResourceName = 'lvc',
 }
 local oldReport = tlib.config.validate(old, tchirpConfigSpec)
 if not oldReport.ok then
-    fail('a 1.0.0 config.lua is fatal under the new spec: ' .. oldReport.errors[1])
+    fail('a 1.0.0 config.lua must not be FATAL, only reported: ' .. oldReport.errors[1])
 end
-if old.chirpMinIntervalMs ~= 1000 or old.chirpMaxDurationMs ~= 60 or old.debug ~= true then
-    fail('a 1.0.0 key did not carry its value onto the new name')
+-- The new names take their SHIPPED defaults, not the old keys' values. That is
+-- the loss the warnings below exist to announce: 4000ms, not the 1000 above.
+if old.chirpMinIntervalMs ~= 4000 or old.debug ~= false then
+    fail('a 1.0.0 key was still carried onto its new name; nothing should translate them now')
 end
-if old.chirpAssignments == nil or old.chirpAssignments.police == nil then
-    fail('ChirpAssignments did not carry onto chirpAssignments')
+for _, key in ipairs({ 'ChirpMinInterval', 'ChirpMaxInterval', 'ChirpMinDuration',
+                       'ChirpMaxDuration', 'ChirpAssignments', 'Debug', 'LVCResourceName' }) do
+    local sawIt = false
+    for _, message in ipairs(oldReport.warnings) do
+        if message:find(key, 1, true) and message:find('doing nothing', 1, true) then
+            sawIt = true
+        end
+    end
+    if not sawIt then
+        fail('Config.' .. key .. ' is no longer read, and a config that still sets it was '
+            .. 'not warned about -- the owner would lose the setting in silence')
+    end
 end
-if #oldReport.warnings < 6 then
-    fail('an owner on 1.0.0 keys was not told about all six renames: got '
-        .. #oldReport.warnings .. ' warning(s)')
-end
-
--- The key the published GitBook page still documents, which 1.0.0 already did
--- not read. It must be reported as doing nothing rather than silently accepted.
-local retired = { LVCResourceName = 'lvc' }
-local retiredReport = tlib.config.validate(retired, tchirpConfigSpec)
-local sawIt = false
-for _, message in ipairs(retiredReport.warnings) do
-    if message:find('LVCResourceName', 1, true) then sawIt = true end
-end
-if not sawIt then fail('Config.LVCResourceName was not reported as retired') end
 
 realPrint('PASS config-spec.lua')
