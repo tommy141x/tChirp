@@ -201,4 +201,59 @@ check(tchirpIsSirenActive(VEH) == false, 'an unknown provider answered')
 check(#logged == 1 and logged[1][2] == tlib.logger.ERROR,
     'an unknown provider did not log at ERROR, so it would look like "the siren was off"')
 
+-- ── tchirpResolvedProvider: WHICH provider owns the vehicle ───────────────
+--
+-- The `/tchirp` dialog's explanation rests entirely on this. "The siren is off"
+-- and "LVC says the siren is off, so the native check never ran" are different
+-- facts, and the second is the one that explains a car that does not chirp — so
+-- the NAME has to be the one the cascade actually stopped at, not the first
+-- plausible candidate.
+
+reset()
+Config.sirenSystem = 'auto'
+myVehicle = VEH
+fire('lvc:UpdateThirdParty', { state_lxsiren = 0 })
+nativeSirenOn = true
+do
+    local name, answer = tchirpResolvedProvider(VEH)
+    check(name == 'lvc', 'the owning provider must be the rung the cascade stopped at, not the last one')
+    check(answer == false, 'the owning provider\'s own answer must be reported, false included')
+    -- The distinction the dialog exists to show: the cascade stopped at LVC, so
+    -- the native flag that says "on" was never consulted.
+    check(tchirpIsSirenActive(VEH) == false, 'the cascade and the resolver must agree')
+end
+
+reset()
+Config.sirenSystem = 'auto'
+nativeSirenOn = true
+do
+    local name, answer = tchirpResolvedProvider(VEH)
+    check(name == 'native', 'with nothing else claiming it, native is the owner')
+    check(answer == true, 'native always answers, which is why it is last')
+end
+
+-- A pinned provider that does not know this car answers nothing at all, rather
+-- than falling through. That is the row the dialog shows as "no provider claims
+-- this vehicle", and it is a real misconfiguration rather than a quiet off.
+reset()
+Config.sirenSystem = 'lvc'
+nativeSirenOn = true
+check(tchirpResolvedProvider(VEH) == nil,
+    'a pinned provider with no claim on the vehicle must resolve to nothing')
+
+reset()
+Config.sirenSystem = 'luxart'
+check(tchirpResolvedProvider(VEH) == nil, 'an unknown provider resolves to nothing')
+
+reset()
+check(tchirpResolvedProvider(0) == nil, 'entity 0 is not a vehicle')
+
+-- Every name the resolver can return must have a label, or the dialog prints a
+-- raw table key at a server owner. Checked against AUTO_ORDER's own contents.
+reset()
+for _, name in pairs({ 'tels', 'lvc', 'lvc_fleet', 'els_fivem', 'jls', 'als', 'native' }) do
+    check(type(TCHIRP_PROVIDER_LABELS[name]) == 'string',
+        'provider ' .. name .. ' has no display label')
+end
+
 print('PASS sirens.lua')

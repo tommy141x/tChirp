@@ -183,3 +183,47 @@ function tchirpProviderAnswers(vehicle)
     end
     return out
 end
+
+--- WHICH provider owns this vehicle, and what it says. For the `/tchirp` dialog.
+---
+--- The first provider to answer anything but nil owns the car, which is the
+--- whole reason nil is a third answer (see the header of this file). The NAME
+--- matters as much as the answer: "the siren is off" and "LVC says the siren is
+--- off, so the native check never ran" are different facts, and the second is
+--- the one that explains a car that does not chirp.
+---
+--- On a pinned `Config.sirenSystem` there is only ever one candidate, so the
+--- answer is that provider or nothing.
+---
+--- @return name|nil, answer|nil   nil, nil when no provider claims the vehicle.
+function tchirpResolvedProvider(vehicle)
+    if not vehicle or vehicle == 0 then return nil end
+
+    local system = Config.sirenSystem
+    if system ~= 'auto' then
+        local checker = checkers[system]
+        if not checker then return nil end
+        local answer = checker(vehicle)
+        if answer == nil then return nil end
+        return system, answer
+    end
+
+    for _, name in ipairs(AUTO_ORDER) do
+        local answer = checkers[name](vehicle)
+        if answer ~= nil then return name, answer end
+    end
+    return nil
+end
+
+--- Display labels for the provider names, for the same dialog. `native` is
+--- spelled out because "native" to a server owner reading a status line is not
+--- obviously "GTA's own siren flag, which ALS lies about".
+TCHIRP_PROVIDER_LABELS = {
+    tels      = 'tELS',
+    lvc       = 'Luxart Vehicle Control',
+    lvc_fleet = 'LVC Fleet',
+    els_fivem = 'ELS-FiveM',
+    jls       = 'JLS',
+    als       = 'Advanced Lighting System',
+    native    = "GTA's own siren flag",
+}

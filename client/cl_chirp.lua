@@ -60,14 +60,14 @@ local function nextInterval()
     return math.random(Config.chirpMinIntervalMs, Config.chirpMaxIntervalMs)
 end
 
-RegisterNetEvent('tChirp:SyncChirpList', function(list)
+RegisterNetEvent('tchirp:SyncChirpList', function(list)
     if type(list) ~= 'table' then return end
 
     for netId in pairs(chirpNextTime) do
         if not list[netId] then
             chirpNextTime[netId] = nil
             stopChirp(netId)
-            TriggerEvent('tChirp:cleared', netId)
+            TriggerEvent('tchirp:cleared', netId)
         end
     end
 
@@ -75,7 +75,7 @@ RegisterNetEvent('tChirp:SyncChirpList', function(list)
     for netId in pairs(list) do
         if not chirpNextTime[netId] then
             chirpNextTime[netId] = now + nextInterval()
-            TriggerEvent('tChirp:armed', netId)
+            TriggerEvent('tchirp:armed', netId)
         end
     end
 
@@ -113,19 +113,19 @@ local function onFrontSeatLeft(vehicle, sirenWasOn)
 
     log(('park kill — vehicle %d (netId %d, sound %s)'):format(vehicle, netId, cfg.sound),
         tlib.logger.DEBUG)
-    TriggerServerEvent('tChirp:AddChirpVehicle', netId, cfg)
+    TriggerServerEvent('tchirp:AddChirpVehicle', netId, cfg)
 end
 
 local function onFrontSeatTaken(netId)
     if not netId or not chirpVehicles[netId] then return end
     log(('front seat taken in chirping vehicle %d — clearing'):format(netId), tlib.logger.DEBUG)
-    TriggerServerEvent('tChirp:RemoveChirpVehicle', netId)
+    TriggerServerEvent('tchirp:RemoveChirpVehicle', netId)
     chirpNextTime[netId] = nil
     stopChirp(netId)
 end
 
 CreateThread(function()
-    TriggerServerEvent('tChirp:RequestChirpList')
+    TriggerServerEvent('tchirp:RequestChirpList')
     Wait(1000)
 
     while true do
@@ -211,6 +211,70 @@ CreateThread(function()
         end
     end
 end)
+
+-- ── Readers for the /tchirp dialog ────────────────────────────────────────
+--
+-- client/cl_menu.lua answers off the same tables the chirp loop runs on, rather
+-- than a second copy.
+--
+-- Globals rather than exports: exports cross resources, and nothing outside
+-- tChirp needs these. `IsChirping` below is the cross-resource surface and is
+-- unchanged.
+
+--- The chirp assignment for a vehicle, or nil if its model is not configured.
+function tchirpAssignmentFor(vehicle)
+    return chirpConfigFor(vehicle)
+end
+
+--- How many vehicles are on the park-kill list, as this client last heard it.
+function tchirpChirpingCount()
+    local count = 0
+    for _ in pairs(chirpVehicles) do count = count + 1 end
+    return count
+end
+
+--- The nearest chirping vehicle within `maxDistance`, from where the player is.
+---
+--- Walks the list rather than the world, so it only considers cars the server
+--- has actually armed. A netId whose entity is not streamed in here is skipped:
+--- `NetworkGetEntityFromNetworkId` answers 0 for those, and treating 0 as an
+--- entity is how a "nearest" search returns the player's own feet.
+---
+--- @return netId|nil, vehicle|nil, distance|nil
+function tchirpNearestChirping(maxDistance)
+    local origin = GetEntityCoords(PlayerPedId())
+    local best, bestVeh, bestDist = nil, nil, tonumber(maxDistance) or 50.0
+
+    for netId in pairs(chirpVehicles) do
+        local vehicle = NetworkGetEntityFromNetworkId(netId)
+        if vehicle ~= 0 and DoesEntityExist(vehicle) then
+            local d = #(origin - GetEntityCoords(vehicle))
+            if d <= bestDist then
+                best, bestVeh, bestDist = netId, vehicle, d
+            end
+        end
+    end
+
+    if not best then return nil end
+    return best, bestVeh, bestDist
+end
+
+--- Take a vehicle off the park-kill list.
+---
+--- The SAME event a front seat being taken sends (`onFrontSeatTaken` above), to
+--- which the server deliberately applies no ownership check — see
+--- `tchirp:RemoveChirpVehicle` in server/sv_chirp.lua.
+---
+--- The local entry is cleared optimistically and the sound stopped at once, for
+--- the same reason the seat path does it: the broadcast is a round trip away and
+--- a button that takes 100 ms to go quiet reads as a button that did nothing.
+function tchirpSilence(netId)
+    if type(netId) ~= 'number' or not chirpVehicles[netId] then return false end
+    TriggerServerEvent('tchirp:RemoveChirpVehicle', netId)
+    chirpNextTime[netId] = nil
+    stopChirp(netId)
+    return true
+end
 
 -- ── Exports ───────────────────────────────────────────────────────────────
 
