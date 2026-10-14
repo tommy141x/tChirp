@@ -11,7 +11,7 @@ tChirp has one dependency, no database, no NUI and no build step. Nothing in it 
 
 | Requirement | Detail |
 | --- | --- |
-| [tLib](/docs/tLib) | **v0.8 or newer.** tChirp declares `tlib_min_version '0.8'` and refuses to start below it. Free |
+| [tLib](/docs/tLib) | **v1.0 or newer.** tChirp declares `tlib_min_version '1.0'` and refuses to start below it. Free |
 | A FiveM server | `lua54`, declared by tChirp itself |
 | A siren system | Any of the six below — or none, in which case tChirp reads the plain GTA siren |
 
@@ -27,8 +27,8 @@ tChirp has one dependency, no database, no NUI and no build step. Nothing in it 
 | Advanced Lighting System | the four `ALS:*SirenClient` events | No |
 | Plain GTA siren | `IsVehicleSirenOn` | No |
 
-<Callout type="info" title="Only two of them are configurable, and that is not an omission">
-An export has to be called by name, so tELS and JLS carry one. An event arrives under its own name whatever the sending resource is called, so LVC, LVC Fleet, ELS-FiveM and ALS have nothing to configure and a renamed folder does not break them.
+<Callout type="info" title="Only tELS and JLS need a resource name">
+They are read through an export, which has to be called by name — so if you renamed either folder, set it in `Config.sirenResources`. The other four are read from an event, which arrives under its own name whatever the sending resource is called, so renaming those folders breaks nothing and there is nothing to set.
 </Callout>
 
 ## Install
@@ -63,13 +63,39 @@ Config.chirpAssignments = {
 
 This is also the on/off switch: a model with no entry never chirps, and an empty table means nothing chirps at all.
 
-### Start it and read the console
+### Optionally, choose who may chirp
 
-```txt
-[tChirp][INFO] started — 8 vehicle model(s) configured, provider "auto"
+`Config.access` gates who can park-kill a car into a chirp. It ships `mode = "everyone"`, so
+**this step is optional** — skip it and nothing changes.
+
+```lua
+Config.access = {
+    mode = "ace",            -- or "job", "item", "custom", "everyone", or a list
+    ace  = "tchirp.use",
+    job  = { police = 0 },   -- name = MINIMUM grade; 0 accepts any
+}
 ```
 
-If your config has a problem you get it here instead, one line per problem, each naming the key, what was expected, what was found and the fix. A configuration **error** stops tChirp from starting rather than letting it run on values you did not write.
+```cfg
+add_ace group.police tchirp.use allow
+```
+
+Whatever you set here, hearing a chirp and silencing one stay open to every player — see
+[Configuration → Access](/docs/tChirp/configuration#access).
+
+### Start it and read the console
+
+A healthy boot prints the tChirp startup banner, and the two rows under the version are the whole summary:
+
+```txt
+  Version:  v2.0.0 — up to date
+  Models:   8 vehicle model(s) configured
+  Sirens:   auto
+```
+
+`Models` is the size of `Config.chirpAssignments`; `Sirens` is `Config.sirenSystem`. There is no separate `started` line.
+
+A config problem prints **above** the banner, one line per problem naming the key, what was expected, what was found and the fix. An **error** stops tChirp starting, and the banner then draws with no `Models` row.
 
 </Steps>
 
@@ -82,11 +108,11 @@ If your config has a problem you get it here instead, one line per problem, each
 
 Within `chirpMinIntervalMs`–`chirpMaxIntervalMs` — 4 to 6 seconds by default — the car chirps, and keeps chirping until somebody sits in a front seat.
 
-If nothing happens, turn on `Config.debug` and read [Troubleshooting](/docs/tChirp/troubleshooting). With debug on, every decision tChirp makes prints a line.
+If nothing happens, run `/tchirp` **while sitting in the car**. It says whether that model is configured and which siren provider is answering for it, which is the pair of facts that explains nearly every silent install — see [How it decides → `/tchirp`](/docs/tChirp/usage#tchirp). Then turn on `Config.debug` and read [Troubleshooting](/docs/tChirp/troubleshooting); with debug on, every decision tChirp makes prints a line.
 
 ## Verifying a change
 
-tChirp's Lua runs under a Lua VM in CI and locally, which is unusual for a FiveM resource and is how a change to it is checked without a game server:
+tChirp's Lua runs under a Lua VM, so you can check a config or code change without a game server:
 
 ```bash
 bun install

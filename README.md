@@ -10,7 +10,7 @@ turns a siren on or off.
 Free, MIT-licensed, and not escrowed. There is no encrypted file in it.
 
 - Published documentation: <https://timmygstudios.com/docs/tChirp>
-- Requires [tLib](https://timmygstudios.com/docs/tLib) v0.8 or newer, which is also free
+- Requires [tLib](https://timmygstudios.com/docs/tLib) v1.0 or newer, which is also free
 
 ## Layout
 
@@ -20,6 +20,7 @@ Free, MIT-licensed, and not escrowed. There is no encrypted file in it.
 | `shared/config-spec.lua` | Validates `config.lua` at startup, on both VMs, before any other chunk runs |
 | `client/cl_sirens.lua` | The six-provider siren cascade. Also exported as `IsSirenActive` |
 | `client/cl_chirp.lua` | Park-kill detection and chirp playback |
+| `server/sv_access.lua` | Who may put a car on the chirp list, through `tlib.access`. Ships `mode = "everyone"` |
 | `server/sv_chirp.lua` | The parked-vehicle list, what it refuses from a client, and `tchirp_diag` |
 | `server/sv_version.lua` | The startup update check |
 | `docs/content/` | The **source** of the published documentation. See below |
@@ -31,8 +32,11 @@ Free, MIT-licensed, and not escrowed. There is no encrypted file in it.
 bun install
 bun run test:lua     # the three Lua suites
 bun run lint         # biome, over the TypeScript in scripts/
-bun run verify       # both
+bun run verify       # every gate, controls first
 ```
+
+Every negative control runs before the gate it controls: a gate nobody has watched fail is an
+assertion, not a gate. `prod` is last, because it is the only step that writes anything.
 
 There is no native Lua interpreter on the development machine, and that turns out to be the only
 kind there isn't: `scripts/test-lua.ts` runs each suite under Fengari, a Lua VM that runs under bun.

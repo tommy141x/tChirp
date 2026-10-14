@@ -16,7 +16,7 @@ It is **free**, MIT-licensed and not escrowed. There is no encrypted file in it.
 - **Not an ELS.** It adds no lighting, no siren control and no tones of its own. It needs an existing siren system, or the plain GTA siren.
 - **Not a per-player sound.** The chirp is played from the vehicle, positionally, on every client near it. Walking away makes it quieter.
 - **Not a siren tone library.** The sounds are native GTA sound names, or a soundset from a resource you already have.
-- **Not standalone.** It needs [tLib](/docs/tLib) v0.8 or newer, which is free.
+- **Not standalone.** It needs [tLib](/docs/tLib) v1.0 or newer, which is free.
 
 ## Start here
 
@@ -29,23 +29,25 @@ It is **free**, MIT-licensed and not escrowed. There is no encrypted file in it.
     Every option in `config.lua`, with its type and default.
   </DocCard>
 
-  <DocCard href="/docs/tChirp/usage" title="3. How it decides">
-    Park-kill detection, the six providers, and the front-seat rule.
+  <DocCard href="/docs/tChirp/usage" title="3. Usage">
+    Park-kill detection, the six providers, the front-seat rule, and `/tchirp`.
   </DocCard>
 
-  <DocCard href="/docs/tChirp/api-reference" title="API reference">
-    Two exports, two local events, one command.
+  <DocCard href="/docs/tChirp/api-reference" title="4. API reference">
+    Two exports, two local events, two commands.
   </DocCard>
 
-  <DocCard href="/docs/tChirp/troubleshooting" title="Troubleshooting">
+  <DocCard href="/docs/tChirp/troubleshooting" title="5. Troubleshooting">
     Symptom-first fixes for the things that actually go wrong.
   </DocCard>
 </DocCards>
 
 ## Upgrading from 1.0.0
 
-Every option was renamed in 1.1.0 to carry its unit, and **your existing `config.lua` keeps working**. tLib's config validator copies each old value onto its new name, uses it, and prints one line per rename naming the replacement. Nothing resets to a default.
+1.1.0 renamed six options to carry their unit and carried your old values across for that one release. **2.0.0 does not.** A 1.0.0 `config.lua` still loads, but each old key is now reported at boot as a setting nothing reads, and the new key falls back to its shipped default — including `ChirpAssignments`, where the default is "nothing chirps".
 
-<Callout type="warning" title="One 1.0.0 setting never did anything">
-`Config.LVCResourceName` is documented in the old GitBook page and was not read by 1.0.0 either — LVC is detected from an event, which arrives under its own name whatever the resource is called. 1.1.0 reports it as retired at startup instead of ignoring it. See [Configuration](/docs/tChirp/configuration#settings-that-are-gone).
+<Callout type="danger" title="Check your config before upgrading to 2.0.0">
+Lowercase the first letter of the six renamed keys. The full mapping, and what each one silently falls back to, is in [Configuration → Renamed, and no longer carried over](/docs/tChirp/configuration#renamed-and-no-longer-carried-over).
 </Callout>
+
+`Config.LVCResourceName` is documented in the old GitBook page and was not read by 1.0.0 either — LVC is detected from an event, which arrives under its own name whatever the resource is called. See [Configuration](/docs/tChirp/configuration#settings-that-are-gone).
