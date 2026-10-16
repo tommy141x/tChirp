@@ -13,10 +13,10 @@
 -- event that taking a front seat sends, and the server deliberately applies no
 -- ownership check to it (see server/sv_chirp.lua).
 --
--- Read-only rows are DISABLED BUTTONS. tLib's dialog field types are
--- text/number/password/textarea/select/dropdown/radio/slider/checkbox/button —
--- there is no display-only type, and a disabled button is the idiom the stack
--- already uses for a static row (tAFK's `_sep` and `editor_hint`).
+-- Read-only rows are tLib's `display` type: text, full opacity, carrying no
+-- value. They were disabled buttons until tLib grew the type, which meant seven
+-- of this dialog's ten rows — every readout it exists for — rendered greyed out
+-- with `cursor: not-allowed`, so the whole thing looked broken.
 
 local log = tlib.logger.create('tChirp')
 
@@ -50,11 +50,6 @@ local function modelLabel(vehicle)
     return name:lower()
 end
 
---- A static row. See the header for why this is a disabled button.
-local function row(id, label, description)
-    return { id = id, type = 'button', label = label, description = description, disabled = true }
-end
-
 local function buildFields()
     local fields = {}
 
@@ -66,11 +61,12 @@ local function buildFields()
         local assignment = tchirpAssignmentFor(vehicle)
 
         if assignment then
-            fields[#fields + 1] = row('thisChirps', ('Will chirp on park: yes — %s'):format(label),
-                ('Sound: %s%s. It chirps when you leave a front seat with the siren on.')
+            fields[#fields + 1] = { id = 'thisChirps', type = 'display',
+                label = ('Will chirp on park: yes — %s'):format(label),
+                description = ('Sound: %s%s. It chirps when you leave a front seat with the siren on.')
                     :format(tostring(assignment.sound),
                         (assignment.ref and assignment.ref ~= 0)
-                            and (', soundset ' .. tostring(assignment.ref)) or ''))
+                            and (', soundset ' .. tostring(assignment.ref)) or '') }
         else
             -- Spell out WHICH name the key is, because both names an owner can
             -- see are the wrong one. `GetDisplayNameFromVehicleModel` returns
@@ -80,13 +76,14 @@ local function buildFields()
             -- add-on they routinely differ and every surface an owner can reach
             -- then shows a string that will never match. A support ticket was
             -- lost to exactly that, with the row saying only "no entry".
-            fields[#fields + 1] = row('thisChirps', ('Will chirp on park: no — %s'):format(label),
-                'This model has no entry in Config.chirpAssignments, which is the on/off '
+            fields[#fields + 1] = { id = 'thisChirps', type = 'display',
+                label = ('Will chirp on park: no — %s'):format(label),
+                description = 'This model has no entry in Config.chirpAssignments, which is the on/off '
                 .. 'switch: a model that is not listed never chirps. The key is the '
                 .. "vehicle's SPAWN name (<modelName> in its vehicles.meta), not the "
                 .. 'display name shown here and not the name /lvcdebug reports — on an '
                 .. 'add-on those are often different. Model hash: '
-                .. ('%d.'):format(GetEntityModel(vehicle)))
+                .. ('%d.'):format(GetEntityModel(vehicle)) }
         end
 
         -- The provider verdict. Named even when it says the siren is off,
@@ -95,28 +92,29 @@ local function buildFields()
         -- forever, and that is exactly what the cascade exists to prevent.
         local provider, answer = tchirpResolvedProvider(vehicle)
         if provider then
-            fields[#fields + 1] = row('thisSiren',
-                ('Siren right now: %s'):format(answer and 'on' or 'off'),
-                ('Answered by %s. On `auto`, the first provider to claim a vehicle owns it; '
+            fields[#fields + 1] = { id = 'thisSiren', type = 'display',
+                label = ('Siren right now: %s'):format(answer and 'on' or 'off'),
+                description = ('Answered by %s. On `auto`, the first provider to claim a vehicle owns it; '
                  .. 'the ones below it are never asked.')
-                    :format(TCHIRP_PROVIDER_LABELS[provider] or provider))
+                    :format(TCHIRP_PROVIDER_LABELS[provider] or provider) }
         else
-            fields[#fields + 1] = row('thisSiren', 'Siren right now: no provider claims this vehicle',
-                'Every checker answered "not my vehicle". With Config.sirenSystem = "auto" '
+            fields[#fields + 1] = { id = 'thisSiren', type = 'display',
+                label = 'Siren right now: no provider claims this vehicle',
+                description = 'Every checker answered "not my vehicle". With Config.sirenSystem = "auto" '
                 .. 'that should be impossible — the native check always answers — so this '
-                .. 'means the pinned provider does not know this car.')
+                .. 'means the pinned provider does not know this car.' }
         end
     else
-        fields[#fields + 1] = row('thisChirps', 'Not in a vehicle',
-            'Get into a front seat to see whether that car is configured to chirp, and which '
-            .. 'siren provider is answering for it.')
+        fields[#fields + 1] = { id = 'thisChirps', type = 'display', label = 'Not in a vehicle',
+            description = 'Get into a front seat to see whether that car is configured to chirp, and which '
+            .. 'siren provider is answering for it.' }
     end
 
     local count = tchirpChirpingCount()
-    fields[#fields + 1] = row('chirpingCount',
-        count == 1 and 'Chirping now: 1 vehicle' or ('Chirping now: %d vehicles'):format(count),
-        'Server-wide, as this client last heard it. Every client plays every chirp locally, '
-        .. 'because the sound is positional in each listener\'s own world.')
+    fields[#fields + 1] = { id = 'chirpingCount', type = 'display',
+        label = count == 1 and 'Chirping now: 1 vehicle' or ('Chirping now: %d vehicles'):format(count),
+        description = 'Server-wide, as this client last heard it. Every client plays every chirp locally, '
+        .. 'because the sound is positional in each listener\'s own world.' }
 
     local netId, nearVeh, dist = tchirpNearestChirping(SILENCE_RANGE)
     if netId then
@@ -125,9 +123,9 @@ local function buildFields()
             description = 'Takes it off the list, the same as someone getting into it would. '
                        .. 'It chirps again the next time it is parked with the siren on.' }
     elseif count > 0 then
-        fields[#fields + 1] = row('silenceNone',
-            ('Nothing chirping within %dm'):format(math.floor(SILENCE_RANGE)),
-            'Something is on the list, but not near enough to you to be the thing you can hear.')
+        fields[#fields + 1] = { id = 'silenceNone', type = 'display',
+            label = ('Nothing chirping within %dm'):format(math.floor(SILENCE_RANGE)),
+            description = 'Something is on the list, but not near enough to you to be the thing you can hear.' }
     end
 
     -- Config facts, so an owner can confirm from in game what the file says
@@ -135,13 +133,13 @@ local function buildFields()
     local modelCount = 0
     for _ in pairs(Config.chirpAssignments or {}) do modelCount = modelCount + 1 end
 
-    fields[#fields + 1] = row('install',
-        ('Provider: %s · %d model%s configured')
+    fields[#fields + 1] = { id = 'install', type = 'display',
+        label = ('Provider: %s · %d model%s configured')
             :format(tostring(Config.sirenSystem), modelCount, modelCount == 1 and '' or 's'),
-        ('Chirps every %d-%dms for %d-%dms. All of it is config.lua; `tchirp_diag` in the '
+        description = ('Chirps every %d-%dms for %d-%dms. All of it is config.lua; `tchirp_diag` in the '
          .. 'server console prints the full report.')
             :format(Config.chirpMinIntervalMs, Config.chirpMaxIntervalMs,
-                    Config.chirpMinDurationMs, Config.chirpMaxDurationMs))
+                    Config.chirpMinDurationMs, Config.chirpMaxDurationMs) }
 
     fields[#fields + 1] = { id = 'refresh', type = 'button', label = 'Refresh' }
 

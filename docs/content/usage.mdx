@@ -52,9 +52,11 @@ Open to anyone, no ACE. It reads the install back to you; there is nothing in it
 | Row | Answers |
 | --- | --- |
 | Will chirp on park | Whether the car you are in has an entry in `Config.chirpAssignments`, and which sound. When it has none it prints the model hash, and says the key is the **spawn** name — not the display name on the row above it, and not what `/lvcdebug` reports |
+| Not in a vehicle | Replaces the two rows above when you are on foot. There is no car to answer about |
 | Siren right now | On or off, **and which provider answered**. On `auto` the first provider to claim a vehicle owns it and the ones below are never asked, so this is the row that explains a car that does not chirp |
 | Chirping now | How many vehicles are on the list server-wide, as this client last heard it |
 | Silence … *N*m away | The one action. Appears only when something is chirping within 50 m |
+| Nothing chirping within 50m | Takes its place when something is on the list but all of it is further away than that |
 | Provider · *N* models configured | The provider and timing from `config.lua`, without the server console |
 
 Every other row is a read-only readout. `Refresh` rebuilds them in place.

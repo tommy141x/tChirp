@@ -10,7 +10,7 @@ tags: ["standalone"]
 # never escrow-packed it is not a smaller carve-out, it is a claim about the
 # build that is not true." The tree is readable and MIT-licensed, same shape as
 # tDB, so it takes tDB's badge rather than the one five other listings carry.
-badge: "Open source"
+badge: "Free"
 updatedAt: "2026-10-16"
 popularity: 20
 resourceName: "tChirp"
@@ -37,7 +37,7 @@ pricing:
   # ⚠️ `amount: 0` WITH a `packageId`, which is the opposite pairing to tDB's and
   # is equally deliberate.
   #
-  # tChirp is free — MIT, no escrow, source in the repository — but unlike tDB it
+  # tChirp is free — MIT, no escrow, source in the download — but unlike tDB it
   # HAS a Tebex package, because it was sold as one before the overhaul. 7086304
   # is that package, "Tommy's Chirp", read off the live Headless API and already
   # carried in `src/lib/billing/legacy-product-id.ts` for the seven people who
@@ -57,7 +57,7 @@ pricing:
   # that was never granted".
   - id: "tchirp"
     kind: "one-time"
-    label: "Free — MIT licensed, full source included, nothing escrowed."
+    label: "Free — MIT licensed, full source in the download, nothing escrowed."
     amount: 0
     currency: "usd"
     packageId: "7086304"
@@ -88,7 +88,7 @@ It is a reminder, not a siren controller: tChirp never turns a siren on or off. 
 - **Runs with zero edits** — every one of the eight options ships with a default, and a key you delete comes back as the value that shipped
 - **The front seat is the rule, both ways** — leaving a front seat with the siren on arms the chirp; taking a front seat clears it immediately, for everyone
 - **Per-model sounds** — a vehicle chirps the native sound you assign it, or a soundset from a resource you already have. A model you do not list never chirps
-- **Free and open source** — MIT licensed, the whole tree readable, no encrypted file and no escrow
+- **Free, and readable** — MIT licensed, every file in the download editable, no encrypted file and no escrow. There is no public repository; the source is the resource you install
 
 </Bento>
 
@@ -158,7 +158,7 @@ A siren switched off by hand and then left within the same 500 ms window still c
       title: "Licence and delivery",
       rows: [
         ["Price", "Free"],
-        ["Licence", "MIT, full source in the repository"],
+        ["Licence", "MIT, full source in the download"],
         ["Escrow", "None. No escrow_ignore, no encrypted file, every file editable"],
         ["Keymaster", "Nothing is granted — there is no asset to look for"],
         ["Version", "1.1.0"],
@@ -183,7 +183,7 @@ Nothing else is configured. `Config.sirenSystem` defaults to `auto`, which casca
 
 <Faq>
   <FaqItem q="Is it really free?">
-    Yes. MIT licensed, the full source in the repository, nothing escrowed and nothing granted in your
+    Yes. MIT licensed, the full source in the download, nothing escrowed and nothing granted in your
     Keymaster, because there is no asset to grant.
   </FaqItem>
   <FaqItem q="Do I have to run tELS to use it?">
