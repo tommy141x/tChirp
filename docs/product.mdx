@@ -1,12 +1,6 @@
 ---
 slug: "tchirp"
-# The compact `t*` form, because this string renders in the catalogue tile, the
-# docs sidebar and the buy rail — all of which are narrow enough that "Tommy's
-# Chirp" wraps to two lines. The long form goes on `displayName` below.
 name: "tChirp"
-# The product page <h1>, and nothing else. Set here rather than left out because
-# "Tommy's Chirp" is the name the product was SOLD under — it is the Tebex
-# package name on 7086304 — not a description invented to fill the field.
 displayName: "Tommy's Chirp"
 tagline: "The park-kill chirp, on whatever ELS you already run"
 category: "fivem"
@@ -20,33 +14,24 @@ badge: "Open source"
 updatedAt: "2026-10-16"
 popularity: 20
 resourceName: "tChirp"
+# Synced from tChirp's own committed HEAD by `scripts/sync-local-docs.ts`, which
+# reads a sibling checkout and so was never blocked on the Gitea token an earlier
+# note here named. The seven pages are in `src/content/docs/tChirp/`.
 docsUrl: "/docs/tChirp"
 provider: "tebex"
-# ⚠️ DRAFT, and the reason is two facts rather than a preference. A third —
-# "the documentation does not exist yet" — was resolved on 2026-10-15 when the
-# seven pages landed in `src/content/docs/tChirp/`, so `docsUrl` above now
-# resolves and is no longer a reason to hold the listing back.
+# ⚠️ PUBLISHED 2026-10-16 ON THE OWNER'S INSTRUCTION, WITH ONE OF THE THREE
+# PRECONDITIONS THIS NOTE USED TO LIST STILL OPEN — recorded here rather than
+# quietly dropped.
 #
-#  1. Publishing requires a lineup entry in `src/content/site.ts`:
-#     `products.test.ts` asserts that every non-draft listing is named there, and
-#     that entry is a decision about ANNOUNCING the product ("membership is a
-#     judgement about announcing a product, and a test cannot make it").
-#  2. The Tebex package is still priced. Free is what this page states and what
-#     the owner is about to make true on Tebex; until it is, a published page
-#     would contradict the store it links to.
-#
-# Both are one change each, and neither is this file's to make. Flip to
-# `published` in the change that lands the lineup entry and the zeroed package —
-# and read the `pricing` note before doing it.
-status: "draft"
-media: []
-# ⚠️ The bytes live in this repository, at docs/public/thumb.jpg, and the docs
-# workflow's "Sync product page" step FAILS the run if they do not — it resolves
-# every asset path in this file against docs/public/ before it copies anything,
-# including paths inside a comment like this one, so do not write an example
-# one here. Carrying the bytes to tWeb is a second step: tChirp has to be
-# in `PRODUCTS` in scripts/sync-docs-assets.ts or the path 404s on the site.
-# That costs nothing while this listing is `status: "draft"` and renders nowhere.
+#  1. Documentation — DONE. Seven pages under `src/content/docs/tChirp/`.
+#  2. A lineup entry in `src/content/site.ts` — DONE, in this change.
+#  3. The Tebex package is STILL PRICED. Measured against the Headless storefront
+#     on 2026-10-16: 7086304 "Tommy's Chirp" returns `total_price: 4.99`. This
+#     page states free, so until the owner zeroes that package the page and the
+#     store it links to disagree. Zeroing it is a Tebex action, not a code one.
+status: "published"
+media:
+  - { type: "image", src: "/assets/tChirp/thumb.jpg", alt: "tChirp" }
 coverImage: "/assets/tChirp/thumb.jpg"
 pricing:
   # ⚠️ `amount: 0` WITH a `packageId`, which is the opposite pairing to tDB's and
@@ -59,14 +44,12 @@ pricing:
   # own it. The package stays listed and the owner zeroes its price; free is a
   # PRICE and `0` is how it is stated.
   #
-  # ⚠️ WHAT MUST HAPPEN WHEN THIS LISTING STOPS BEING A DRAFT: delete 7086304's
-  # line from `HISTORICAL_PACKAGE_NAMES`. `softwareProducts` drops a draft, so
-  # today `catalog-port.ts` never sees this id and the historical name is still
-  # the only answer to "what did I buy" for those seven rows. The moment the
-  # listing publishes, `resolveTierForStoredProductId` resolves the id through
-  # this frontmatter and `toPortalServices` prefers the tier — leaving the
-  # historical line as "a dead entry that looks authoritative", which is the
-  # exact rule `legacy-product-id.test.ts` pins for tELS's 7442235.
+  # ⚠️ 7086304'S LINE IN `HISTORICAL_PACKAGE_NAMES` WAS DELETED IN THE CHANGE
+  # THAT PUBLISHED THIS PAGE, which is what the note here used to ask for. A
+  # published listing means `resolveTierForStoredProductId` resolves the id
+  # through this frontmatter and `toPortalServices` prefers the tier, so the
+  # historical line became "a dead entry that looks authoritative" — the exact
+  # rule `legacy-product-id.test.ts` pins for tELS's 7442235.
   #
   # ⚠️ There is no `keymasterAsset` and there must not be one. Nothing here is
   # escrowed, so nothing is granted; `src/lib/portal/services.ts` carries the
@@ -87,7 +70,7 @@ It is a reminder, not a siren controller: tChirp never turns a siren on or off. 
 <Stats
   items={[
     { value: "6", label: "siren systems read, plus the plain GTA siren" },
-    { value: "9", label: "config options, and none of them is required" },
+    { value: "8", label: "config options, and none of them is required" },
     { value: "0", label: "databases, NUI files and build steps" },
   ]}
 />
@@ -101,11 +84,10 @@ It is a reminder, not a siren controller: tChirp never turns a siren on or off. 
 <Bento>
 
 - **Reads the ELS you already have** — tELS, Luxart Vehicle Control, LVC Fleet, ELS-FiveM, JLS and Advanced Lighting System, cascaded in that order, or the plain GTA siren if you run none of them
-- **Nothing to operate** — no keybind, and no command an officer has to use. The behaviour is the product; `/tchirp` only reads the install back to you
-- **Runs with zero edits** — every option ships with a value, and the siren cascade needs no configuration at all unless you renamed your tELS or JLS folder
+- **Nothing to operate** — no keybind, no menu, no command an officer uses. The behaviour is the product
+- **Runs with zero edits** — every one of the eight options ships with a default, and a key you delete comes back as the value that shipped
 - **The front seat is the rule, both ways** — leaving a front seat with the siren on arms the chirp; taking a front seat clears it immediately, for everyone
 - **Per-model sounds** — a vehicle chirps the native sound you assign it, or a soundset from a resource you already have. A model you do not list never chirps
-- **Who may park-kill is yours to set** — `Config.access` takes an ACE, a job and grade, an inventory item, or your own function, across six frameworks and nine inventories. It ships open
 - **Free and open source** — MIT licensed, the whole tree readable, no encrypted file and no escrow
 
 </Bento>
@@ -161,7 +143,7 @@ A siren switched off by hand and then left within the same 500 ms window still c
     {
       title: "Compatibility",
       rows: [
-        ["Frameworks", "Optional, and only for Config.access — six frameworks and nine inventories resolve out of the box"],
+        ["Frameworks", "None. It sits beside whatever siren system you already run"],
         ["Dependencies", "tLib v1.0+ (free). Nothing else"],
         [
           "Siren systems read",
@@ -179,7 +161,7 @@ A siren switched off by hand and then left within the same 500 ms window still c
         ["Licence", "MIT, full source in the repository"],
         ["Escrow", "None. No escrow_ignore, no encrypted file, every file editable"],
         ["Keymaster", "Nothing is granted — there is no asset to look for"],
-        ["Version", "2.0.0"],
+        ["Version", "1.1.0"],
       ],
     },
   ]}
@@ -217,19 +199,15 @@ Nothing else is configured. `Config.sirenSystem` defaults to `auto`, which casca
     Only the models you assign a sound to — that assignment is the on/off switch. Deleting a model's
     entry stops it chirping.
   </FaqItem>
-  <FaqItem q="Can I stop civilians park-killing a car into a chirp?">
-    Yes, with `Config.access` — an ACE, a job and minimum grade, an inventory item, or a function you
-    write. It ships as `everyone`. Hearing a chirp and silencing one stay open to every player whatever
-    you set, because playback is client-side and the officer who parks a car is routinely not the one
-    who takes it out.
-  </FaqItem>
   <FaqItem q="I am on 1.0.0. Does my config still work?">
-    It loads, but read the upgrade note first. 1.1.0 renamed six options to carry their units and
-    copied your old values across for that one release; 2.0.0 does not. Each old key is now reported at
-    boot as a setting nothing reads, and `Config.ChirpAssignments` in particular throws a Lua error in
-    both of tChirp's main script files rather than falling back to anything. Lowercasing the first
-    letter of six keys is the whole migration, and the
-    [full mapping](/docs/tChirp/configuration#renamed-and-no-longer-carried-over) lists what each one
-    costs you.
+    Yes. Every option was renamed in 1.1.0 to carry its unit, and tLib's config validator copies each
+    old value onto its new name, uses it, and prints one line per rename naming the replacement.
+    Nothing resets to a default.
   </FaqItem>
 </Faq>
+
+<Callout type="info" title="Documentation is not published yet">
+tChirp's six documentation pages live in its own repository and are mirrored onto this site by its
+docs sync. That sync has not run yet, so there is no `/docs/tChirp` to link — which is why this
+listing is a draft rather than a live page with a link into nothing.
+</Callout>
