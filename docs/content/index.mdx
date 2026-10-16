@@ -30,21 +30,25 @@ It is **free**, MIT-licensed and not escrowed. There is no encrypted file in it.
   </DocCard>
 
   <DocCard href="/docs/tChirp/usage" title="3. Usage">
-    Park-kill detection, the six providers, the front-seat rule, and `/tchirp`.
+    Park-kill detection, the front-seat rule, `/tchirp`, and what the server refuses.
   </DocCard>
 
-  <DocCard href="/docs/tChirp/api-reference" title="4. API reference">
+  <DocCard href="/docs/tChirp/siren-systems" title="4. Siren systems">
+    How each ELS is read, the cascade order, and what to do if yours is not one of them.
+  </DocCard>
+
+  <DocCard href="/docs/tChirp/api-reference" title="5. API reference">
     Two exports, two local events, two commands.
   </DocCard>
 
-  <DocCard href="/docs/tChirp/troubleshooting" title="5. Troubleshooting">
+  <DocCard href="/docs/tChirp/troubleshooting" title="6. Troubleshooting">
     Symptom-first fixes for the things that actually go wrong.
   </DocCard>
 </DocCards>
 
 ## Upgrading from 1.0.0
 
-1.1.0 renamed six options to carry their unit and carried your old values across for that one release. **2.0.0 does not.** A 1.0.0 `config.lua` still loads, but each old key is now reported at boot as a setting nothing reads, and the new key falls back to its shipped default — including `ChirpAssignments`, where the default is "nothing chirps".
+1.1.0 renamed six options to carry their unit and carried your old values across for that one release. **2.0.0 does not.** A 1.0.0 `config.lua` still loads, but each old key is now reported at boot as a setting nothing reads, and the new key falls back to its shipped default — except `ChirpAssignments`, which has no default and takes tChirp's two main script files down with a Lua error.
 
 <Callout type="danger" title="Check your config before upgrading to 2.0.0">
 Lowercase the first letter of the six renamed keys. The full mapping, and what each one silently falls back to, is in [Configuration → Renamed, and no longer carried over](/docs/tChirp/configuration#renamed-and-no-longer-carried-over).

@@ -7,7 +7,9 @@ group: "tChirp"
 
 Everything is in `config.lua`. There is no database, no in-game panel and no escrow: edit the file, restart the resource.
 
-tChirp runs with zero edits. Nothing here is required, and a key you delete comes back as the value the shipped file carries.
+tChirp runs with zero edits. Nothing here is required.
+
+Every key you delete comes back as something sane. Six come back as the value the shipped file carries. `chirpAssignments` comes back as empty, which starts the resource and chirps for nothing. The two that have no shipped default still answer: `access` falls back to tLib's own `everyone`, and `sirenResources` falls back to "no export-based provider is named".
 
 ## The two you will actually change
 
@@ -119,6 +121,8 @@ If you already run WM Sirens, its soundset works as a `ref`:
 
 <Callout type="info" title="This table is also the on/off switch">
 A model with no entry never chirps. Deleting an entry is how you stop that model chirping, and an empty table is a supported state — tChirp loads and does nothing.
+
+**Deleting the whole key is not the same as emptying it.** There is no shipped default for this one, so `Config.chirpAssignments = {}` is the "nothing chirps" setting and removing the line altogether is a Lua error in both of tChirp's main script files.
 </Callout>
 
 A malformed entry — a missing `sound`, or a bare number where the table belongs — is reported at startup by model name rather than skipped, so one car that never chirps while the rest do is traceable to a line in the file.
@@ -141,20 +145,27 @@ With it on you get a line for every park kill, every list sync, every chirp and 
 | `Config.ChirpMaxInterval` | `Config.chirpMaxIntervalMs` | Falls back to the shipped maximum |
 | `Config.ChirpMinDuration` | `Config.chirpMinDurationMs` | Falls back to the shipped minimum |
 | `Config.ChirpMaxDuration` | `Config.chirpMaxDurationMs` | Falls back to the shipped maximum |
-| `Config.ChirpAssignments` | `Config.chirpAssignments` | **Falls back to empty. Nothing chirps at all** |
+| `Config.ChirpAssignments` | `Config.chirpAssignments` | Falls back to empty. The resource starts and nothing chirps |
 | `Config.Debug` | `Config.debug` | Falls back to `false`. Debug logging is off |
 
 The four timing keys now carry an `Ms` suffix. The values are milliseconds and always were, so copy your old numbers across unchanged.
 
-<Callout type="warning" title="ChirpAssignments is the row that costs you the feature">
-With no `chirpAssignments`, no model has a sound assigned, and tChirp's own rule is that an unassigned model cannot get on the chirp list. The resource starts, logs cleanly, and nothing ever chirps. You will be told — one line per dead key, at every start:
+<Callout type="warning" title="A renamed ChirpAssignments chirps for nothing">
+Lowercasing the `C` is the whole fix, but the failure is quiet rather than loud: with the old
+spelling the key your fleet lives in is simply not read, `chirpAssignments` falls back to empty,
+and the resource starts clean and never chirps. The warning that explains it prints once per
+unread key at every start:
 
 ```
 [tChirp] config.lua: Config.ChirpAssignments is not a setting this resource reads, so it is doing nothing.
   Fix: check it against the documented settings, or delete it.
 ```
 
-The fix is to lowercase the `C`. Nothing else about the value changed.
+Until 2026-10-16 this was worse. `chirpAssignments` shipped with no default at all, and both
+`client/cl_chirp.lua` and `server/sv_chirp.lua` walk it with a bare `pairs()` at file scope, so an
+absent key took both files out with `bad argument #1 to 'pairs' (table expected, got nil)` — and
+`tchirp_diag`, the command you would reach for, was never registered to tell you. It now defaults
+to an empty table.
 </Callout>
 
 ## Settings that are gone

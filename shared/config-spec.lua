@@ -77,7 +77,19 @@ tchirpConfigSpec = {
         -- ── Assignments ──────────────────────────────────────────────────────
         -- A map of model name → { sound, ref }, so `list` would reject it.
         -- An EMPTY table is legal and means "nothing chirps".
-        chirpAssignments = { type = 'table' },
+        -- `default` matters here, unlike on the other tables. Both
+        -- client/cl_chirp.lua and server/sv_chirp.lua walk this with a bare
+        -- `pairs()` at FILE scope, so an operator who drops the key from
+        -- config.lua -- which merging a shipped config forward makes easy --
+        -- gets `bad argument #1 to 'pairs' (table expected, got nil)` and
+        -- NEITHER file loads. The resource is then dead and `tchirp_diag` is
+        -- never registered to say why. Empty means "no vehicle is assigned a
+        -- chirp", which starts clean and is what the documentation promises.
+        --
+        -- tlib.config assigns a default BY REFERENCE (`tbl[key] = def.default`),
+        -- so this table is shared with Config. Nothing writes to it; if that
+        -- ever changes, copy it here instead.
+        chirpAssignments = { type = 'table', default = {} },
 
         debug = { type = 'boolean', default = false },
     },

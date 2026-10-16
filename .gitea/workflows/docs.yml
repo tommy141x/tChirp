@@ -145,14 +145,14 @@ jobs:
           SRC="docs/product.mdx"
           DEST="tWeb/src/content/software/$PRODUCT_SLUG.mdx"
 
-          # ⚠️ tChirp DELIBERATELY SHIPS NO docs/product.mdx TODAY.
+          # ⚠️ docs/product.mdx EXISTS as of 2026-10-16, so this step is live and
+          # THIS REPOSITORY NOW OWNS THE STOREFRONT PAGE. Every push that touches
+          # docs/ overwrites tWeb's src/content/software/tchirp.mdx wholesale.
+          # Edit the listing here; an edit made in tWeb is gone at the next push
+          # and the person who made it has no reason to look in this repository.
           #
-          # The storefront page for tChirp is authored in tWeb. Adding a
-          # product.mdx here would make this step start OVERWRITING it on the next
-          # docs push, silently, and the person whose edit vanished would have no
-          # reason to look in this repository. The step is kept rather than
-          # deleted because the absent-source guard below is what makes adding one
-          # later a deliberate act: drop the file in, and the page moves here.
+          # The absent-source guard below is kept: it is what made adding the file
+          # a deliberate act rather than a surprise, and it is the rollback path.
           if [ ! -f "$SRC" ]; then
             echo "No $SRC — leaving tWeb's existing product page for $PRODUCT_SLUG alone."
             exit 0

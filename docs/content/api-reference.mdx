@@ -1,7 +1,7 @@
 ---
 title: "API reference"
 description: "tChirp's two client exports, two client events and two commands: IsChirping, IsSirenActive, tchirp:armed, tchirp:cleared, /tchirp and tchirp_diag."
-order: 4
+order: 5
 group: "tChirp"
 ---
 
@@ -42,6 +42,15 @@ end
 This is the six-provider cascade, exported so another resource does not need its own copy. It respects `Config.sirenSystem`, so on a server that has pinned a single provider this answers for that provider only.
 
 It reports the **siren**, not the lights, and not park-kill state. A car sitting park-killed returns `false` — the siren really is off; that is what a park kill is.
+
+<Callout type="danger" title="Call it on the local player's vehicle, and nothing else">
+LVC, LVC Fleet, ELS-FiveM and ALS are read from events that tChirp caches **against the vehicle the local player is in**. Asking about any other vehicle has two costs:
+
+- Those four providers have nothing cached for it and answer "not mine", so the answer can only come from tELS, JLS or the native siren flag.
+- The cache is **reset** by the question. A checker asked about a vehicle that is not the cached one clears its state, so a resource polling this export across nearby traffic can wipe the local player's own siren state and suppress the park kill that would have followed.
+
+See [Siren systems](/docs/tChirp/siren-systems#asking-about-a-vehicle-you-are-not-in).
+</Callout>
 
 ## Events
 

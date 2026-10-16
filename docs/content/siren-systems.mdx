@@ -1,0 +1,114 @@
+---
+title: "Siren systems"
+description: "How tChirp reads each of the six ELS resources and the plain GTA siren, the three-state answer that makes a mixed fleet work, the cascade order, and what to do when your ELS is not one of them."
+order: 4
+group: "tChirp"
+---
+
+tChirp asks one question of your ELS: **was the siren on?** Everything else hangs off the answer, and this page is how that question is asked of each system.
+
+Nothing here needs configuring on a normal install. `Config.sirenSystem = 'auto'` is the default and covers every case below, including a server running two different ELS resources at once.
+
+## Three answers, not two
+
+A provider answers **on**, **off**, or **not mine**. Only "not mine" falls through to the next provider.
+
+That third answer is what makes a mixed fleet work: one server can run tELS cars and LVC cars, and each is answered by the provider that owns it rather than by whichever one happens to be checked first.
+
+It matters just as much in the other direction. **Advanced Lighting System never tells the game engine when it stops a siren**, so on an ALS car the plain `IsVehicleSirenOn` check reads `true` with the siren audibly off. ALS answering **off** — not "not mine" — for a vehicle it has claimed is what stops the cascade before it reaches that check. Without it, every ALS car would chirp on every park.
+
+## What each provider is read from
+
+Two shapes, and the difference is the whole reason only two resource names appear in `config.lua`.
+
+| System | Read from | Needs a name in `Config.sirenResources`? |
+| --- | --- | --- |
+| tELS | `exports[name]:IsSirenActive(vehicle)` | Yes — `tels` |
+| JLS | `exports[name]:IsSirenActive(vehicle)` | Yes — `jls` |
+| Luxart Vehicle Control | the `lvc:UpdateThirdParty` event | No |
+| LVC Fleet | the same event as LVC | No |
+| ELS-FiveM | the `els:setSirenState_c` event | No |
+| Advanced Lighting System | the four `ALS:*SirenClient` events | No |
+| Plain GTA siren | `IsVehicleSirenOn(vehicle)` | No |
+
+**Export-based** providers are asked directly, at the moment the answer is needed. Calling an export needs the resource's name, which is why tELS and JLS — and only those two — appear in `Config.sirenResources`. Rename either folder and you must say so there, or that provider silently stops answering.
+
+**Event-based** providers push their state at tChirp and it caches what arrives. A FiveM event arrives under its own name regardless of what the sending resource is called, so a renamed LVC folder still works and there is nothing to configure.
+
+<Callout type="info" title="A missing export is not an error">
+Each export call is wrapped, because the export is simply absent on a server that does not run that resource and a missing export throws rather than returning `nil`. An absent tELS reads as "not mine" and the cascade moves on.
+</Callout>
+
+### tELS and JLS
+
+Asked per call, so there is no cached state and nothing to go stale. An answer that is neither `true` nor `false` — including the throw from an export that is not installed — is treated as "not mine".
+
+### Luxart Vehicle Control and LVC Fleet
+
+One event, one cache, one checker for both: Fleet is a fork that kept the third-party broadcast identical. The siren is considered on when LVC's reported tone is above zero.
+
+### Advanced Lighting System
+
+Primary and secondary sirens are separate events and **either one counts as a siren on**. The two stop events clear the cache. See the note above for why ALS answers "off" rather than "not mine".
+
+### ELS-FiveM
+
+ELS-FiveM broadcasts every player's siren state to every client, so tChirp filters the sender down to the local player before touching the cache. A state above zero is a siren.
+
+### The plain GTA siren
+
+`IsVehicleSirenOn`, and it **always answers** — which is exactly what makes it usable as the last rung of the cascade and unusable as any other. A native check placed above ALS would answer for an ALS car, and wrongly.
+
+## The cascade order
+
+On `auto`, in this order, first non-`nil` answer wins:
+
+```txt
+tels → lvc / lvc_fleet → els_fivem → jls → als → native
+```
+
+- **tELS first** because it is ours and it answers definitively.
+- **ALS below JLS** because ALS's off-for-claimed behaviour is inferred from its events rather than asked, so a provider that can be asked directly gets the first word.
+- **`native` last** for the reason above: it always answers, so it can only ever be the fallback.
+
+## Pinning a single provider
+
+`Config.sirenSystem` takes a single provider name instead of `auto`, and then that provider is the only one consulted.
+
+```lua
+Config.sirenSystem = 'tels'
+```
+
+<Callout type="warning" title="Pinning removes the fallback as well as the other providers">
+A vehicle the pinned provider does not recognise answers "not mine", and with nothing below it to fall through to, that is the end — the car is treated as siren-off and never chirps. There is no fall-through to the native check.
+
+Pin a provider when you run exactly one ELS and you would rather a wrong answer be loud than be papered over. On a mixed fleet, use `auto`.
+</Callout>
+
+## Asking about a vehicle you are not in
+
+The caches for LVC, ALS and ELS-FiveM are keyed to **the vehicle the local player is sitting in** — that is what stops another player's siren bleeding into your car's state. Two consequences, and both bite other resources rather than tChirp itself:
+
+- `exports.tChirp:IsSirenActive(veh)` on a car you are not in can only ever be answered by tELS, JLS or the native check. The three event-based providers have nothing cached for it and answer "not mine".
+- Asking about a **different** vehicle clears the cache for the one you are in. The checker sees a vehicle that is not the cached one and resets, so a resource that polls `IsSirenActive` across nearby traffic can wipe your own car's siren state and suppress the park kill that would have followed.
+
+If you are integrating, call it on the local player's vehicle, or accept the native-only answer for anything else.
+
+## My ELS is not one of these
+
+Then nothing claims your vehicles and every park falls through to the native check — which many ELS resources never set. The two symptoms are the opposite extremes, and both are the same cause:
+
+| Symptom | What happened |
+| --- | --- |
+| Nothing ever chirps | Your ELS turns the siren on without setting the game's own siren flag, so the native check reads `false` and no park is ever a park kill |
+| Every park chirps, even with the siren off | Your ELS sets the flag on and never clears it, so the native check reads `true` forever |
+
+For the second one, pinning `Config.sirenSystem` to the closest match is a workaround rather than a fix: ALS is handled specifically because it has exactly that behaviour, and a system tChirp does not know about is worth reporting so it can be added the same way.
+
+## Checking which provider answered
+
+`/tchirp`, sitting in the car, has a **Siren right now** row that names the provider as well as the answer. "The siren is off" and "LVC says the siren is off, so the native check never ran" are different facts, and the second is the one that explains a car that does not chirp.
+
+A row reading **no provider claims this vehicle** is only possible on a pinned `Config.sirenSystem`. On `auto` the native check always answers, so that line means the provider you pinned does not know this car.
+
+`tchirp_diag` in the server console prints the configured provider alongside the rest of the config, which is the check for "is the server reading the file I think it is".

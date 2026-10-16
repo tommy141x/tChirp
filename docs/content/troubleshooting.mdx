@@ -1,7 +1,7 @@
 ---
 title: "Troubleshooting"
 description: "Symptom-first fixes for tChirp: nothing chirps, everything chirps, only some vehicles chirp, the chirp never stops, and the errors that name tLib."
-order: 5
+order: 6
 group: "tChirp"
 ---
 
@@ -43,6 +43,8 @@ No line here and the siren was never seen as on. That is a provider problem:
 - Your ELS is not one of the six, so only `IsVehicleSirenOn` answers — which many ELS resources never set.
 - `Config.sirenSystem` is pinned to a provider that does not own this vehicle. Set it to `auto`.
 - You switched the siren off by hand more than 500 ms before getting out, so by the last sample it was already off. Let the ELS park-kill it.
+
+[Siren systems](/docs/tChirp/siren-systems#my-els-is-not-one-of-these) has the symptom table for an ELS tChirp does not know about.
 
 ### Did the server accept it?
 
@@ -91,7 +93,7 @@ If you upgraded from 1.0.0 and copied an example from the old GitBook page, chec
 
 A vehicle none of the providers claim falls through to `IsVehicleSirenOn`, and some ELS resources turn their siren "off" without telling the game engine — so the native check keeps reporting `true`.
 
-ALS is handled specifically for exactly this reason. If yours is a system tChirp does not know about, pin `Config.sirenSystem` to the closest match rather than leaving it on `auto`, or report the resource so it can be added.
+ALS is handled specifically for exactly this reason. If yours is a system tChirp does not know about, pin `Config.sirenSystem` to the closest match rather than leaving it on `auto`, or report the resource so it can be added — see [Siren systems](/docs/tChirp/siren-systems#my-els-is-not-one-of-these).
 
 ## The chirp never stops
 

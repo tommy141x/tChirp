@@ -63,11 +63,11 @@ Every other row is a read-only readout. `Refresh` rebuilds them in place.
 
 There is no `/tchirpedit`.
 
-## Providers, and the answer that is neither yes nor no
+## Which provider answers
 
-Each provider answers one of three things about a vehicle: **on**, **off**, or **not mine**. Only "not mine" falls through to the next provider, and that is what lets one server run tELS cars and LVC cars at once.
+Each provider answers one of three things about a vehicle: **on**, **off**, or **not mine**. Only "not mine" falls through to the next one, which is what lets a single server run tELS cars and LVC cars at once — and what lets ALS, whose siren state the game engine never sees, stop the cascade before it reaches a check that would read every ALS car as siren-on forever.
 
-"Off" matters as much as "on". ALS does not tell the game engine when it stops a siren, so on an ALS vehicle the plain `IsVehicleSirenOn` check reads `true` with the siren audibly off. ALS therefore answers **off** for a vehicle it has claimed, which stops the cascade before it reaches that check — without it, every ALS car would chirp on every park.
+Which provider owns a given car is the fact that explains most of what tChirp does or does not do, so it has its own page: [Siren systems](/docs/tChirp/siren-systems).
 
 ## What the server refuses
 

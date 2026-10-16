@@ -1,0 +1,235 @@
+---
+slug: "tchirp"
+# The compact `t*` form, because this string renders in the catalogue tile, the
+# docs sidebar and the buy rail — all of which are narrow enough that "Tommy's
+# Chirp" wraps to two lines. The long form goes on `displayName` below.
+name: "tChirp"
+# The product page <h1>, and nothing else. Set here rather than left out because
+# "Tommy's Chirp" is the name the product was SOLD under — it is the Tebex
+# package name on 7086304 — not a description invented to fill the field.
+displayName: "Tommy's Chirp"
+tagline: "The park-kill chirp, on whatever ELS you already run"
+category: "fivem"
+tags: ["standalone"]
+# ⚠️ NOT "Escrow", and that is the point of this listing. tChirp's own
+# fxmanifest.lua carries no `escrow_ignore` and says why: "on a resource that is
+# never escrow-packed it is not a smaller carve-out, it is a claim about the
+# build that is not true." The tree is readable and MIT-licensed, same shape as
+# tDB, so it takes tDB's badge rather than the one five other listings carry.
+badge: "Open source"
+updatedAt: "2026-10-16"
+popularity: 20
+resourceName: "tChirp"
+docsUrl: "/docs/tChirp"
+provider: "tebex"
+# ⚠️ DRAFT, and the reason is two facts rather than a preference. A third —
+# "the documentation does not exist yet" — was resolved on 2026-10-15 when the
+# seven pages landed in `src/content/docs/tChirp/`, so `docsUrl` above now
+# resolves and is no longer a reason to hold the listing back.
+#
+#  1. Publishing requires a lineup entry in `src/content/site.ts`:
+#     `products.test.ts` asserts that every non-draft listing is named there, and
+#     that entry is a decision about ANNOUNCING the product ("membership is a
+#     judgement about announcing a product, and a test cannot make it").
+#  2. The Tebex package is still priced. Free is what this page states and what
+#     the owner is about to make true on Tebex; until it is, a published page
+#     would contradict the store it links to.
+#
+# Both are one change each, and neither is this file's to make. Flip to
+# `published` in the change that lands the lineup entry and the zeroed package —
+# and read the `pricing` note before doing it.
+status: "draft"
+media: []
+# ⚠️ The bytes live in this repository, at docs/public/thumb.jpg, and the docs
+# workflow's "Sync product page" step FAILS the run if they do not — it resolves
+# every asset path in this file against docs/public/ before it copies anything,
+# including paths inside a comment like this one, so do not write an example
+# one here. Carrying the bytes to tWeb is a second step: tChirp has to be
+# in `PRODUCTS` in scripts/sync-docs-assets.ts or the path 404s on the site.
+# That costs nothing while this listing is `status: "draft"` and renders nowhere.
+coverImage: "/assets/tChirp/thumb.jpg"
+pricing:
+  # ⚠️ `amount: 0` WITH a `packageId`, which is the opposite pairing to tDB's and
+  # is equally deliberate.
+  #
+  # tChirp is free — MIT, no escrow, source in the repository — but unlike tDB it
+  # HAS a Tebex package, because it was sold as one before the overhaul. 7086304
+  # is that package, "Tommy's Chirp", read off the live Headless API and already
+  # carried in `src/lib/billing/legacy-product-id.ts` for the seven people who
+  # own it. The package stays listed and the owner zeroes its price; free is a
+  # PRICE and `0` is how it is stated.
+  #
+  # ⚠️ WHAT MUST HAPPEN WHEN THIS LISTING STOPS BEING A DRAFT: delete 7086304's
+  # line from `HISTORICAL_PACKAGE_NAMES`. `softwareProducts` drops a draft, so
+  # today `catalog-port.ts` never sees this id and the historical name is still
+  # the only answer to "what did I buy" for those seven rows. The moment the
+  # listing publishes, `resolveTierForStoredProductId` resolves the id through
+  # this frontmatter and `toPortalServices` prefers the tier — leaving the
+  # historical line as "a dead entry that looks authoritative", which is the
+  # exact rule `legacy-product-id.test.ts` pins for tELS's 7442235.
+  #
+  # ⚠️ There is no `keymasterAsset` and there must not be one. Nothing here is
+  # escrowed, so nothing is granted; `src/lib/portal/services.ts` carries the
+  # reason on that field — a Keymaster line "sends them hunting for something
+  # that was never granted".
+  - id: "tchirp"
+    kind: "one-time"
+    label: "Free — MIT licensed, full source included, nothing escrowed."
+    amount: 0
+    currency: "usd"
+    packageId: "7086304"
+---
+
+tChirp reproduces one small piece of real patrol car behaviour. When a siren is **park killed** — silenced automatically because the car was put in park while still in pursuit mode — tChirp chirps that car at a randomised interval until somebody gets back in the front seat.
+
+It is a reminder, not a siren controller: tChirp never turns a siren on or off. It watches whichever ELS your server already runs, notices that a siren was live when the officer left, and chirps the car they left.
+
+<Stats
+  items={[
+    { value: "6", label: "siren systems read, plus the plain GTA siren" },
+    { value: "9", label: "config options, and none of them is required" },
+    { value: "0", label: "databases, NUI files and build steps" },
+  ]}
+/>
+
+<Chapter>
+
+## Highlights
+
+</Chapter>
+
+<Bento>
+
+- **Reads the ELS you already have** — tELS, Luxart Vehicle Control, LVC Fleet, ELS-FiveM, JLS and Advanced Lighting System, cascaded in that order, or the plain GTA siren if you run none of them
+- **Nothing to operate** — no keybind, and no command an officer has to use. The behaviour is the product; `/tchirp` only reads the install back to you
+- **Runs with zero edits** — every option ships with a value, and the siren cascade needs no configuration at all unless you renamed your tELS or JLS folder
+- **The front seat is the rule, both ways** — leaving a front seat with the siren on arms the chirp; taking a front seat clears it immediately, for everyone
+- **Per-model sounds** — a vehicle chirps the native sound you assign it, or a soundset from a resource you already have. A model you do not list never chirps
+- **Who may park-kill is yours to set** — `Config.access` takes an ACE, a job and grade, an inventory item, or your own function, across six frameworks and nine inventories. It ships open
+- **Free and open source** — MIT licensed, the whole tree readable, no encrypted file and no escrow
+
+</Bento>
+
+<Chapter>
+
+## What it is not
+
+</Chapter>
+
+<Bento>
+
+- **Not an ELS.** It adds no lighting, no siren control and no tones of its own. It needs an existing siren system, or the plain GTA siren.
+- **Not a siren tone library.** The sounds are native GTA sound names, or a soundset from a resource you already have.
+- **Not a per-player sound.** The chirp is played from the vehicle with `PlaySoundFromEntity`, so every client near the car plays it positionally and it gets quieter as you walk away.
+- **Not usable without tLib.** tLib is free, and tChirp refuses to start below the version it declares rather than failing halfway down a file.
+
+</Bento>
+
+<Chapter>
+
+## How it decides
+
+</Chapter>
+
+Three things have to be true at the moment a player leaves a vehicle: they were in a **front seat**, the vehicle's **siren was on** as of the last check before they left, and the vehicle's **model is one you assigned a sound to**. Then the car goes on the chirp list.
+
+The siren is sampled every 500 ms while you are seated and the exit is decided against the **previous** sample, because killing the siren is part of a park kill — by the time the player is out of the seat every provider correctly reports the siren as off, so a check taken at that moment would return false every single time and nothing would ever chirp.
+
+Each chirp draws a fresh interval and a fresh duration from the configured ranges, so a row of parked cars does not fall into step.
+
+<Callout type="warning" title="The consequence, stated plainly">
+A siren switched off by hand and then left within the same 500 ms window still counts as a park kill. There is no way to tell the two apart after the fact — both look like "the siren was on a moment ago and the player is now outside".
+</Callout>
+
+<Chapter>
+
+## Requirements
+
+</Chapter>
+
+<Bento>
+
+- [tLib](/docs/tLib) **v1.0 or later** — tChirp declares `tlib_min_version '1.0'` and refuses to start below it. Free
+- **A siren system, or none** — any of the six it reads, and the plain GTA siren if you run none of them
+- **`lua54`**, which tChirp declares itself
+- No framework required, no database, no NUI and no build step
+
+</Bento>
+
+<SpecTable
+  groups={[
+    {
+      title: "Compatibility",
+      rows: [
+        ["Frameworks", "Optional, and only for Config.access — six frameworks and nine inventories resolve out of the box"],
+        ["Dependencies", "tLib v1.0+ (free). Nothing else"],
+        [
+          "Siren systems read",
+          "tELS, Luxart Vehicle Control, LVC Fleet, ELS-FiveM, JLS, Advanced Lighting System, plain GTA siren",
+        ],
+        ["Configurable provider names", "tELS and JLS only — the two that are read through an export"],
+        ["Database", "None"],
+        ["Runtime", "lua54"],
+      ],
+    },
+    {
+      title: "Licence and delivery",
+      rows: [
+        ["Price", "Free"],
+        ["Licence", "MIT, full source in the repository"],
+        ["Escrow", "None. No escrow_ignore, no encrypted file, every file editable"],
+        ["Keymaster", "Nothing is granted — there is no asset to look for"],
+        ["Version", "2.0.0"],
+      ],
+    },
+  ]}
+/>
+
+<Chapter>
+
+## Getting it running
+
+</Chapter>
+
+Three steps, and none of them is a purchase.
+
+1. Drop `tChirp` into your resources folder, next to `tLib`. The folder must be named exactly `tChirp` — its exports are published as `exports.tChirp` and a FiveM resource is addressed by its folder name.
+2. `ensure tChirp` after `tLib`.
+3. Assign a sound to the vehicle models your department actually runs. It ships with the eight base-game police models, which is a starting point rather than your fleet.
+
+Nothing else is configured. `Config.sirenSystem` defaults to `auto`, which cascades through every provider — pin it to one only if you run exactly one ELS and want a wrong answer to be loud.
+
+<Faq>
+  <FaqItem q="Is it really free?">
+    Yes. MIT licensed, the full source in the repository, nothing escrowed and nothing granted in your
+    Keymaster, because there is no asset to grant.
+  </FaqItem>
+  <FaqItem q="Do I have to run tELS to use it?">
+    No. It reads six siren systems and falls back to the plain GTA siren, so it works on a server with
+    no ELS at all. Only tELS and JLS are read through an export and therefore need a folder name in the
+    config; the other four are detected from events, which arrive under their own names however the
+    sending resource is renamed.
+  </FaqItem>
+  <FaqItem q="Will it turn sirens on or off?">
+    Never. It plays a chirp from the vehicle and nothing else. Whatever owns the siren keeps owning it.
+  </FaqItem>
+  <FaqItem q="Which vehicles chirp?">
+    Only the models you assign a sound to — that assignment is the on/off switch. Deleting a model's
+    entry stops it chirping.
+  </FaqItem>
+  <FaqItem q="Can I stop civilians park-killing a car into a chirp?">
+    Yes, with `Config.access` — an ACE, a job and minimum grade, an inventory item, or a function you
+    write. It ships as `everyone`. Hearing a chirp and silencing one stay open to every player whatever
+    you set, because playback is client-side and the officer who parks a car is routinely not the one
+    who takes it out.
+  </FaqItem>
+  <FaqItem q="I am on 1.0.0. Does my config still work?">
+    It loads, but read the upgrade note first. 1.1.0 renamed six options to carry their units and
+    copied your old values across for that one release; 2.0.0 does not. Each old key is now reported at
+    boot as a setting nothing reads, and `Config.ChirpAssignments` in particular throws a Lua error in
+    both of tChirp's main script files rather than falling back to anything. Lowercasing the first
+    letter of six keys is the whole migration, and the
+    [full mapping](/docs/tChirp/configuration#renamed-and-no-longer-carried-over) lists what each one
+    costs you.
+  </FaqItem>
+</Faq>
