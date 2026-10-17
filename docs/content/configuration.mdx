@@ -113,29 +113,3 @@ A malformed entry — no `sound`, or a bare number where the table belongs — i
 <Callout type="info" title="This table is also the on/off switch">
 A model with no entry never chirps. `{}` is a supported "nothing chirps" state, and deleting the key entirely is equivalent.
 </Callout>
-
-## Renamed, and no longer carried over
-
-1.1.0 copied your value onto the new name for one release. **2.0.0 does not** — each old spelling is reported at boot as doing nothing.
-
-| Gone | Use | Falls back to |
-| --- | --- | --- |
-| `Config.ChirpMinInterval` | `Config.chirpMinIntervalMs` | `4000` |
-| `Config.ChirpMaxInterval` | `Config.chirpMaxIntervalMs` | `6000` |
-| `Config.ChirpMinDuration` | `Config.chirpMinDurationMs` | `75` |
-| `Config.ChirpMaxDuration` | `Config.chirpMaxDurationMs` | `125` |
-| `Config.ChirpAssignments` | `Config.chirpAssignments` | empty — **nothing chirps** |
-| `Config.Debug` | `Config.debug` | `false` |
-
-Timing values were always milliseconds, so copy your numbers across unchanged.
-
-## Settings that are gone
-
-| Setting | What happened | Reported? |
-| --- | --- | --- |
-| `Config.LVCResourceName` | **Never read, by any version**, despite the old GitBook page | **Yes**, per boot |
-| `Config.sirenResources.lvc` | Same — LVC needs no name | **No.** Delete it yourself |
-
-<Callout type="warning" title="The old GitBook page describes a different assignment format">
-It documents `Config.ChirpAssignments` as vehicle name to a **siren ID from `lvc/SIRENS.lua`**, as in `['police'] = 4`. No released tChirp reads that shape — a bare number errors at startup, naming the model.
-</Callout>

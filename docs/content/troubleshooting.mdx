@@ -66,4 +66,4 @@ A **front** seat clears it; a rear seat does not. If it survives that, the vehic
 | `attempt to index a function value` | Same cause, or a tLib too old to have the module tChirp asked for |
 | `Config.sirenSystem must be one of ...` | A provider name that does not exist. See [Siren provider](/docs/tChirp/configuration#siren-provider) |
 | `chirpMinIntervalMs (...) is greater than chirpMaxIntervalMs (...)` | An inverted range. Unchecked, the chirp thread dies silently |
-| `... is not a setting this resource reads` | A warning, not an error. **The value is not carried onto the new key** — see [Renamed](/docs/tChirp/configuration#renamed-and-no-longer-carried-over) |
+| `... is not a setting this resource reads` | A warning, not an error. The key is ignored and the default applies |
