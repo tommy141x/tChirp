@@ -16,3 +16,12 @@ node_modules/
 # file onto Config at server start. See tLib/shared/imports/secrets/server.lua.
 config.local.lua
 config/config.local.lua
+
+# The workshop: material used to MAKE things, never runtime. `bun run gallery`
+# writes assets/gallery/ here, regenerated on demand. The hand-supplied hero
+# backdrop is the exception — a gameplay screenshot the repo cannot reproduce.
+#
+# `/assets/*` and not `/assets/`: a negation cannot re-include anything under a
+# directory git has excluded, so the exception has to leave `assets/` listable.
+/assets/*
+!/assets/hero/

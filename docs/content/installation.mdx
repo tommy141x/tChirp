@@ -23,7 +23,7 @@ Only tELS and JLS need their folder name, in `Config.sirenResources`. See [Siren
 
 ### Put the folder in place
 
-Extract into `resources/`. The folder must be named exactly `tChirp`, no version suffix — exports are published as `exports.tChirp`.
+Extract into `resources/`. The folder must be named exactly `tChirp`, no version suffix.
 
 ### Set the load order
 
@@ -32,7 +32,7 @@ ensure tLib
 ensure tChirp
 ```
 
-Both script files take `tlib.logger` as they load. Wrong order gives `No such export`.
+Wrong order gives `No such export`.
 
 ### Check your vehicle list
 
@@ -67,4 +67,4 @@ If nothing happens, run [`/tchirp`](/docs/tChirp/usage#tchirp) in the car: wheth
 
 ## Verifying a change without a server
 
-`bun install && bun run test:lua` runs three suites under a Lua VM: the config spec, the provider cascade, and the server list including what it refuses.
+`bun install && bun run test:lua` checks your `config.lua` against tChirp's own test suites.

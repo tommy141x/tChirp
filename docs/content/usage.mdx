@@ -15,7 +15,7 @@ All three must be true as a player leaves a vehicle:
 2. The vehicle's **siren was on** at the last check before they left.
 3. The vehicle's **model is in `Config.chirpAssignments`**.
 
-The siren is sampled every 500 ms and the exit judged against the **previous** sample, because killing the siren is part of a park kill — a check after the exit always reads `false`.
+The siren is sampled every 500 ms, and the exit is judged against the **previous** sample.
 
 <Callout type="warning" title="A hand-killed siren can still chirp">
 A siren switched off by hand and then left within the same 500 ms window counts as a park kill, and nothing can tell the two apart afterwards. When testing, **let the ELS park-kill the siren**.
@@ -23,7 +23,7 @@ A siren switched off by hand and then left within the same 500 ms window counts 
 
 ## The front-seat rule
 
-A front seat — driver or passenger — both arms and clears a chirp, and nothing chirps while one is occupied. This is tLib's shared occupancy rule, used by tELS, tRadar and tRadio too. The chirp is `PlaySoundFromEntity` on the vehicle: positional, so it fades as you walk away, with a fresh interval each time so parked cars do not fall into step.
+A front seat — driver or passenger — both arms and clears a chirp, and nothing chirps while one is occupied. The chirp plays from the vehicle, so it fades as you walk away.
 
 ## `/tchirp`
 
@@ -41,7 +41,7 @@ The assignment key is the **spawn** name. On foot the first two rows become **No
 
 ## What the server refuses
 
-The park kill is noticed client-side, so the server re-checks it against its own `config.lua`:
+The server re-checks every park kill against its own `config.lua`:
 
 | When the server can | It requires |
 | --- | --- |
@@ -49,10 +49,10 @@ The park kill is noticed client-side, so the server re-checks it against its own
 | see the vehicle, whose model has no assignment | nothing — refused outright |
 | not see the vehicle at all | a tone this server has configured somewhere |
 
-The last row is ordinary: a vehicle mid-migration is briefly outside the server's view. Both events are rate-limited at 12 per 10 seconds per player.
+Both events are rate-limited at 12 per 10 seconds per player.
 
 <Callout type="warning" title="Clearing a chirp is not ownership-checked">
-A removal is accepted from any player — the officer who parks a car and the one who takes it out are routinely different people. The worst a forged removal does is stop a chirp early.
+A removal is accepted from any player. The worst a forged one does is stop a chirp early.
 </Callout>
 
 ## Cleanup

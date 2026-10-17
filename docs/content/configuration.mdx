@@ -20,11 +20,10 @@ Who may park-kill a car onto the chirp list. **The default is `everyone`.**
 | `Config.access.count` | number | `1` | How many of that item |
 | `Config.access.custom` | function | `nil` | Takes a player id, returns `true` to allow |
 
-A list passes if **either** entry does. Six frameworks and nine inventories resolve out of the box, and every failure denies.
+A list passes if **either** entry does. Six frameworks and nine inventories resolve out of the box.
 
 <Callout type="info" title="This gates adding a chirp, not hearing one or stopping one">
-  Playback is client-side, so a civilian beside a chirping patrol car hears it, and silencing is
-  accepted from anyone.
+  A civilian beside a chirping patrol car hears it, and silencing is accepted from anyone.
 </Callout>
 
 ## Siren provider
@@ -73,7 +72,7 @@ Config.chirpAssignments = {
 A malformed entry — no `sound`, or a bare number where the table belongs — is reported at startup **by model name**, not skipped.
 
 <Callout type="info" title="This table is also the on/off switch">
-A model with no entry never chirps, and `{}` is a supported "nothing chirps" state. Deleting the key entirely is equivalent: it defaults to `{}`. Before 2026-10-16 it had no default, and an absent key took both main script files down with `bad argument #1 to 'pairs'`.
+A model with no entry never chirps. `{}` is a supported "nothing chirps" state, and deleting the key entirely is equivalent.
 </Callout>
 
 ## Renamed, and no longer carried over

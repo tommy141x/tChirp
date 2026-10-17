@@ -33,17 +33,47 @@ const subtitle = cliArg("subtitle") ?? "Park-kill siren chirp reminder for FiveM
 const only = cliArg("format");
 
 /**
- * The art this hero is composed from, in paint order — first is furthest back.
+ * One layer, and it is the whole frame rather than a panel floating in it.
  *
- * These placements are untuned: they cannot be checked against captures that do not exist yet.
- * Size and angle them once the real art is in.
+ * Every other resource composites UI captures onto this dark ground. tChirp has no UI to
+ * capture — it is a reminder that fires when you walk away from a running car — so the art is
+ * a photograph of exactly that: a marked unit parked with its lights still going. A
+ * photograph cannot be a floating rectangle with a shadow; it has to BE the background, with
+ * the type sitting on a scrim over it.
+ *
+ * Two things make that work:
+ *
+ *   `-webkit-mask-image`   fades the photo out where the type goes, so the headline sits on
+ *                          the frame's own black instead of on a bright daylight sky. The
+ *                          prefix is load-bearing: this renders in the vendored NUI Chromium,
+ *                          revision 103, and unprefixed `mask-image` only arrived in 120 —
+ *                          unprefixed it is ignored and the photo runs behind the wordmark at
+ *                          full strength.
+ *   `filter: brightness`   the source is bright midday GTA and this frame is near-black. At
+ *                          full strength the photo reads as a different image pasted in.
+ *
+ * Mask percentages are relative to the IMAGE, which is larger than the frame and offset, so
+ * they do not line up with frame percentages. The car sits at roughly 39% across and 26-60%
+ * down the source, which is what the offsets below are positioning.
  */
 const LAYERS: { file: string; thumb: string; banner: string }[] = [
   {
-    file: "chirp.png",
-    thumb: `width: 1480px; left: 220px; top: 20px; border-radius: 0;`,
-    banner: `width: 1000px; left: 800px; top: 48px; border-radius: 0;
-             transform: rotateY(-9deg) rotateX(3deg) rotateZ(-1deg);`,
+    file: "chirp.jpg",
+    // 2651x1172 source; at 3200 wide it stands 1415 tall, and `top` drops the car into the
+    // lower half so the headline is not sitting on the roof.
+    thumb: `width: 3200px; left: -380px; top: 60px; border-radius: 0;
+            filter: brightness(.52) saturate(.88) contrast(1.05);
+            -webkit-mask-image: linear-gradient(to bottom, transparent 8%, rgba(0,0,0,.35) 26%, #000 44%);
+            mask-image: linear-gradient(to bottom, transparent 8%, rgba(0,0,0,.35) 26%, #000 44%);`,
+    // The banner puts its copy down the left, so the fade runs the other way. The car is left
+    // of centre in the source, so the image is pushed right to clear the type — the gap that
+    // opens on the left is inside the masked-out region anyway.
+    // The car spans 34-67% of the source width; at 1900 wide and pushed to 300 that put its
+    // nose 73px past the right edge, so the whole unit read as leaving the frame.
+    banner: `width: 1750px; left: 250px; top: -120px; border-radius: 0;
+             filter: brightness(.56) saturate(.88) contrast(1.05);
+             -webkit-mask-image: linear-gradient(to right, transparent 2%, rgba(0,0,0,.3) 20%, #000 40%);
+             mask-image: linear-gradient(to right, transparent 2%, rgba(0,0,0,.3) 20%, #000 40%);`,
   },
 ];
 
@@ -66,7 +96,8 @@ if (only !== "banner") {
     headline,
     subtitle,
     headlineSize: 172,
-    stageCss: "top: 430px; height: 650px;",
+    // Full frame, not the default band below the type: this layer IS the background.
+    stageCss: "top: 0; height: 1080px;",
     layers: layers("thumb"),
     out: out("thumb.jpg"),
   });

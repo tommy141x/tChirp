@@ -9,7 +9,7 @@ Two client exports, two client-side events, two commands. None of it is needed t
 
 ## Exports
 
-Both client-side, and both `exports.tChirp` — the folder must be named exactly that or neither resolves.
+Both client-side, and both `exports.tChirp`.
 
 | Export | Parameters | Returns | What it does |
 | --- | --- | --- | --- |
@@ -19,12 +19,12 @@ Both client-side, and both `exports.tChirp` — the folder must be named exactly
 `IsSirenActive` reports the **siren**, not the lights and not park-kill state, so a park-killed car returns `false`.
 
 <Callout type="danger" title="Call IsSirenActive on the local player's vehicle, and nothing else">
-LVC, LVC Fleet, ELS-FiveM and ALS are cached **against the vehicle the local player is in**, so any other vehicle costs twice: those four answer "not mine", and the question **resets** the cache, suppressing your own park kill. See [Siren systems](/docs/tChirp/siren-systems#asking-about-a-vehicle-you-are-not-in).
+LVC, LVC Fleet, ELS-FiveM and ALS only answer for the vehicle you are in, and asking about another car **suppresses your own park kill**. See [Siren systems](/docs/tChirp/siren-systems#asking-about-a-vehicle-you-are-not-in).
 </Callout>
 
 ## Events
 
-Local, raised with `TriggerEvent`. Both fire on **every** client receiving the list, not only the one that parked the car.
+Local, raised with `TriggerEvent`. Both fire on **every** client, not only the one that parked the car.
 
 | Event | Arguments | When |
 | --- | --- | --- |
@@ -47,9 +47,8 @@ Everything the server accepts is [validated against `config.lua`](/docs/tChirp/u
 Lowercase `tchirp:` is the only form; the verbs are unchanged. Rename every `tChirp:` name in your code: a stale listener never runs, a stale trigger goes nowhere.
 
 <Callout type="warning" title="A wrong event name is silent in FiveM">
-  Triggering an event nobody registered is not an error — it does nothing, quietly, with no console
-  warning. If an integration stopped at 2.0.0, start here. If you subscribed to both spellings in
-  1.x, drop the `tChirp:` one: you were handling every event twice.
+  Triggering an event nobody registered does nothing, with no console warning. If an integration
+  stopped at 2.0.0, start here. If you subscribed to both spellings in 1.x, drop the `tChirp:` one.
 </Callout>
 
 ## Commands
