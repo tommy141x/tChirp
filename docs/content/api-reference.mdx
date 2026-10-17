@@ -1,7 +1,7 @@
 ---
 title: "API reference"
 description: "tChirp's two client exports, two client events, the wire protocol and two commands."
-order: 5
+order: 4
 group: "tChirp"
 ---
 
@@ -19,7 +19,7 @@ Both client-side, and both `exports.tChirp`.
 `IsSirenActive` reports the **siren**, not the lights and not park-kill state, so a park-killed car returns `false`.
 
 <Callout type="danger" title="Call IsSirenActive on the local player's vehicle, and nothing else">
-LVC, LVC Fleet, ELS-FiveM and ALS only answer for the vehicle you are in, and asking about another car **suppresses your own park kill**. See [Siren systems](/docs/tChirp/siren-systems#asking-about-a-vehicle-you-are-not-in).
+LVC, LVC Fleet, ELS-FiveM and ALS only answer for the vehicle you are in, and asking about another car **suppresses your own park kill**. See [Asking about a vehicle you are not in](/docs/tChirp/configuration#asking-about-a-vehicle-you-are-not-in).
 </Callout>
 
 ## Events

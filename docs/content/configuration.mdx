@@ -1,6 +1,6 @@
 ---
 title: "Configuration"
-description: "Every option in tChirp's config.lua with its type and default: access, the siren provider, chirp timing, per-model sound assignments, and the keys renamed in 1.1.0."
+description: "Every option in tChirp's config.lua with its type and default: access, which ELS the siren is read from, chirp timing, per-model sound assignments, and the keys renamed in 1.1.0."
 order: 2
 group: "tChirp"
 ---
@@ -28,12 +28,51 @@ A list passes if **either** entry does. Six frameworks and nine inventories reso
 
 ## Siren provider
 
+tChirp asks one question: **was the siren on?** The default, `auto`, covers every case below, including two ELS resources on one server.
+
 | Option | Type | Default | What it does |
 | --- | --- | --- | --- |
 | `Config.sirenSystem` | `auto` \| `tels` \| `lvc` \| `lvc_fleet` \| `els_fivem` \| `jls` \| `als` \| `native` | `"auto"` | Which system is asked whether the siren was on |
 | `Config.sirenResources` | table | `{ tels = 'tELS', jls = 'Jace3483_JLS' }` | Folder names of the two export-based providers |
 
-`auto` takes the first provider that recognises the vehicle; pinning one removes the fallback. See [Siren systems](/docs/tChirp/siren-systems).
+| System | Read from | Name needed? | Notes |
+| --- | --- | --- | --- |
+| tELS | `exports[name]:IsSirenActive(vehicle)` | Yes — `tels` | |
+| JLS | `exports[name]:IsSirenActive(vehicle)` | Yes — `jls` | |
+| Luxart Vehicle Control | `lvc:UpdateThirdParty` event | No | On when the tone is above zero |
+| LVC Fleet | the same event as LVC | No | |
+| ELS-FiveM | `els:setSirenState_c` event | No | |
+| Advanced Lighting System | the four `ALS:*SirenClient` events | No | **Either** siren counts as on |
+| Plain GTA siren | `IsVehicleSirenOn(vehicle)` | No | The fallback when nothing else claims the car |
+
+Rename tELS or JLS and you must say so in `Config.sirenResources`, or it silently stops answering.
+
+### The cascade order
+
+With `auto`, the first provider that recognises the vehicle answers:
+
+```txt
+tels → lvc / lvc_fleet → els_fivem → jls → als → native
+```
+
+<Callout type="warning" title="Pinning removes the fallback as well as the other providers">
+`Config.sirenSystem = 'tels'` consults that provider only. A vehicle it does not recognise is treated as siren-off and never chirps. Pin only when you run exactly one ELS and would rather a wrong answer be loud.
+</Callout>
+
+### Asking about a vehicle you are not in
+
+LVC, ALS and ELS-FiveM only answer for **the vehicle you are in**. Asking `IsSirenActive` about any other car both gets a useless answer and **suppresses your own park kill**, so do not poll nearby traffic.
+
+### My ELS is not one of these
+
+Nothing claims your vehicles, so every park falls through to the native check.
+
+| Symptom | What happened |
+| --- | --- |
+| Nothing ever chirps | Your ELS sets no siren flag; the check reads `false` |
+| Every park chirps, siren off | Your ELS never clears the flag; the check reads `true` forever |
+
+For the second, pinning `Config.sirenSystem` to the closest match is a workaround, not a fix. Report your ELS and it can be supported directly, as ALS is.
 
 ## Chirp timing
 
