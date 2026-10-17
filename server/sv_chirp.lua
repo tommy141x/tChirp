@@ -301,6 +301,14 @@ AddEventHandler('onResourceStart', function(resource)
     if resource ~= GetCurrentResourceName() then return end
     local count = 0
     for _ in pairs(Config.chirpAssignments) do count = count + 1 end
-    TriggerEvent('tchirp:vcInfo:models', ('%d vehicle model(s) configured'):format(count))
+    -- Zero is not a healthy count: an empty table parses and boots clean, but
+    -- nothing will ever chirp. It is also the state an operator reaches by
+    -- dropping the key while merging a shipped config forward, which the spec
+    -- gives `default = {}` precisely to keep from killing the resource -- so
+    -- the banner is the only place that difference can surface.
+    TriggerEvent('tchirp:vcInfo:models', count == 0
+        and { value = 'none configured — nothing will chirp. Add models to Config.chirpAssignments in config.lua.',
+              color = '^3' }
+        or ('%d vehicle model(s) configured'):format(count))
     TriggerEvent('tchirp:vcInfo:sirens', tostring(Config.sirenSystem))
 end)

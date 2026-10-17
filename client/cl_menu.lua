@@ -14,8 +14,8 @@
 -- ownership check to it (see server/sv_chirp.lua).
 --
 -- Read-only rows are tLib's `display` type: text, full opacity, carrying no
--- value. Not disabled buttons — seven of this dialog's ten rows are readouts,
--- and greyed out with `cursor: not-allowed` the whole thing looks broken.
+-- value. Not disabled buttons — every row but Silence is a readout, and greyed
+-- out with `cursor: not-allowed` the whole thing would look broken.
 
 local log = tlib.logger.create('tChirp')
 
@@ -140,28 +140,53 @@ local function buildFields()
             :format(Config.chirpMinIntervalMs, Config.chirpMaxIntervalMs,
                     Config.chirpMinDurationMs, Config.chirpMaxDurationMs) }
 
-    fields[#fields + 1] = { id = 'refresh', type = 'button', label = 'Refresh' }
-
     return fields
 end
 
+-- ── Live refresh ──────────────────────────────────────────────────────────
+--
+-- There is no Refresh button. Seven of the ten rows derive from world state
+-- that changes continuously -- the siren, the chirping count, and a distance
+-- that is wrong as soon as the player takes a step -- so a button to re-read
+-- them is asking the player to do the dialog's job, and the rows it does not
+-- get pressed for are simply wrong.
+--
+-- Every row is `display` except Silence, which is a button, so there is no
+-- focused input for a field swap to fight.
+
+local dialogOpen = false
+local refreshGeneration = 0
+
+--- Rebuilt rather than re-opened: UpdateDialogFields keeps the window where it
+--- is, and every row here is derived, so there is no value to preserve across
+--- the swap. Guarded on `dialogOpen` because tLib logs a line for an update
+--- aimed at a dialog that is not open, and both callers below can fire after a
+--- close.
+local function refresh()
+    if not dialogOpen then return end
+    exports['tLib']:UpdateDialogFields(DIALOG, buildFields())
+end
+
+-- The list arriving from the server. The 1s tick below would pick it up anyway,
+-- but this is the one update whose timing the player can feel: /tchirp opens
+-- immediately on a possibly-empty local list and asks for the real one in the
+-- same frame, so this is what makes "Chirping now" correct the moment the round
+-- trip lands rather than up to a second later.
+AddEventHandler('tchirp:SyncChirpList', function() refresh() end)
+
 local function open()
+    local shown
     local ok, err = pcall(function()
-        exports['tLib']:ShowDialog(DIALOG, {
+        shown = exports['tLib']:ShowDialog(DIALOG, {
             title       = 'tChirp',
             size        = 'md',
             submitLabel = 'Close',
             fields      = buildFields(),
 
-            onButtonClick = function(fieldId)
-                if fieldId == 'refresh' then
-                    -- Rebuilt rather than re-opened: UpdateDialogFields keeps the
-                    -- window where it is, and every row here is derived, so there
-                    -- is no value to preserve across the swap.
-                    exports['tLib']:UpdateDialogFields(DIALOG, buildFields())
-                    return
-                end
+            onSubmit = function() dialogOpen = false end,
+            onCancel = function() dialogOpen = false end,
 
+            onButtonClick = function(fieldId)
                 if fieldId == 'silence' then
                     -- Re-resolved, NOT taken from the label the button was built
                     -- with. The player may have walked away, or another officer
@@ -175,7 +200,7 @@ local function open()
                         exports['tLib']:ShowToast(nil, 'warning', 'tChirp',
                             'Nothing chirping near you any more.', 2500)
                     end
-                    exports['tLib']:UpdateDialogFields(DIALOG, buildFields())
+                    refresh()
                     return
                 end
             end,
@@ -190,18 +215,57 @@ local function open()
         log(('/tchirp could not open its dialog: %s'):format(tostring(err)), tlib.logger.ERROR)
         log('This is normally tLib missing its built UI files. Download tLib.zip from the '
             .. 'Releases page rather than the source archive.', tlib.logger.ERROR)
+        return
     end
+
+    -- A REFUSAL, not a throw. ShowDialog answers most of them (the HUD editor
+    -- is open, another resource owns the id, a later dialog superseded this one
+    -- mid-call) by returning nil rather than raising -- so `ok` alone is not
+    -- "it is on screen", and starting the tick on `ok` would aim an update once
+    -- a second, forever, at a dialog that was never opened.
+    --
+    -- tLib pairs that nil with a reason string, but a second return value is
+    -- not something an export boundary is relied on to carry anywhere else in
+    -- these resources, so it is not read here. The refusals are all states the
+    -- player can see for themselves.
+    if not shown then
+        log('/tchirp did not open — tLib refused the dialog (the HUD editor being open '
+            .. 'is the usual reason).', tlib.logger.WARN)
+        return
+    end
+
+    dialogOpen = true
+
+    -- Re-read on a tick rather than off events, because the rows that move most
+    -- are not events: the distance to the nearest chirping car changes as the
+    -- player walks, and nothing fires when they do.
+    --
+    -- The generation check retires the previous tick when the dialog is
+    -- reopened inside the one second its loop is still sleeping through.
+    refreshGeneration = refreshGeneration + 1
+    local generation = refreshGeneration
+    CreateThread(function()
+        while dialogOpen and refreshGeneration == generation do
+            Wait(1000)
+            if refreshGeneration ~= generation then return end
+            refresh()
+        end
+    end)
 end
 
 RegisterCommand('tchirp', function()
     -- Asked every time rather than cached: this client's copy of the list is
     -- whatever the last broadcast said, and a client that connected during a
     -- quiet period has an empty one.
+    --
+    -- The dialog opens in the SAME frame, on whatever the client already has.
+    -- Waiting on the reply first was a guess at a round trip -- 120 ms, above
+    -- the 100 ms a direct manipulation has to answer within, paid on every
+    -- invocation including the ones where the list was already current. It did
+    -- not even buy correctness: a player on 150 ms ping got the dialog built
+    -- from the stale list anyway, with no second chance at it.
     TriggerServerEvent('tchirp:RequestChirpList')
-    CreateThread(function()
-        Wait(120)
-        open()
-    end)
+    open()
 end, false)
 
 TriggerEvent('chat:addSuggestion', '/tchirp',

@@ -277,8 +277,14 @@ end
 
 -- ── Exports ───────────────────────────────────────────────────────────────
 
+-- Registered through tlib.platform.wrapExport, the house call site for an
+-- export, so these move with it if it ever grows behaviour. It is NOT a throw
+-- guard today -- on FiveM it is literally `exports(name, fn)`. What actually
+-- keeps a raising third-party ELS from escaping IsSirenActive as an `undefined`
+-- return is the `pcall` in cl_sirens.lua's askExport, one layer down.
+
 --- Is this vehicle currently on the park-kill chirp list?
-exports('IsChirping', function(vehicle)
+tlib.platform.wrapExport('tChirp', 'IsChirping', function(vehicle)
     if not vehicle or vehicle == 0 then return false end
     local netId = NetworkGetNetworkIdFromEntity(vehicle)
     return (netId and netId ~= 0 and chirpVehicles[netId]) and true or false
@@ -288,7 +294,9 @@ end)
 --- acts on. Exported rather than kept private because "was this car's siren on,
 --- whatever ELS this server runs" is the genuinely reusable half of tChirp, and
 --- the alternative for a consumer is a second copy of the cascade.
-exports('IsSirenActive', function(vehicle) return tchirpIsSirenActive(vehicle) end)
+tlib.platform.wrapExport('tChirp', 'IsSirenActive', function(vehicle)
+    return tchirpIsSirenActive(vehicle)
+end)
 
 -- ── Cleanup ───────────────────────────────────────────────────────────────
 
