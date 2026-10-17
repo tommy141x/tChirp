@@ -20,7 +20,7 @@ Free, MIT-licensed, and not escrowed. There is no encrypted file in it.
 | `shared/config-spec.lua` | Validates `config.lua` at startup, on both VMs, before any other chunk runs |
 | `client/cl_sirens.lua` | The six-provider siren cascade. Also exported as `IsSirenActive` |
 | `client/cl_chirp.lua` | Park-kill detection and chirp playback |
-| `client/cl_menu.lua` | `/tchirp` — the in-game status dialog, and the one Silence action |
+| `client/cl_menu.lua` | `/tchirp` — the in-game status dialog, its one Silence action, and the Feedback tab |
 | `server/sv_access.lua` | Who may put a car on the chirp list, through `tlib.access`. Ships `mode = "everyone"` |
 | `server/sv_chirp.lua` | The parked-vehicle list, what it refuses from a client, and `tchirp_diag` |
 | `server/sv_version.lua` | The startup update check |

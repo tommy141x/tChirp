@@ -49,6 +49,14 @@ local function modelLabel(vehicle)
     return name:lower()
 end
 
+--- The Feedback tab's staged draft.
+---
+--- Module-level, not per-open, because `refresh()` below rebuilds every field
+--- once a second and the draft has to outlive that. Staged rather than sent as it
+--- is typed: a textarea reports every keystroke and each send is a network round
+--- trip under a per-minute limiter. The Send button is what commits it.
+local feedbackMessage = ''
+
 local function buildFields()
     local fields = {}
 
@@ -140,6 +148,49 @@ local function buildFields()
             :format(Config.chirpMinIntervalMs, Config.chirpMaxIntervalMs,
                     Config.chirpMinDurationMs, Config.chirpMaxDurationMs) }
 
+    -- Everything above is the Status tab. Nothing carries `tab` because tLib puts
+    -- an untagged field on the first tab, and these rows ARE the first tab -- but
+    -- the feedback pair below has to say which tab it is on, and so would any row
+    -- added here in future.
+
+    -- ── Feedback ────────────────────────────────────────────────────────────
+    --
+    -- Last in the sidebar, behind a rule, in every t* resource: the one entry
+    -- that is not a readout of what tChirp is doing. tChirp had no feedback
+    -- surface at all before 2026-10-17, and -- having no editor and no settings
+    -- -- it is the only t* resource whose sidebar is a status tab and this.
+    --
+    -- Built HERE rather than at the ShowDialog call, because `refresh()` replaces
+    -- the whole field list once a second through UpdateDialogFields: a field
+    -- declared anywhere else would survive for under a second. The typed draft
+    -- survives the swap -- UpdateDialogFields preserves existing values, and the
+    -- page's field rows are keyed by field id, so the textarea DOM node and its
+    -- caret are reused rather than rebuilt.
+    --
+    -- `SubmitFeedback` attributes the message to the CALLING resource, so the
+    -- whole of the wiring is this pair, the tab and the two handler branches --
+    -- no net event, no server file, nothing in tLib. The only prerequisite is the
+    -- `tlib_min_version` in fxmanifest.lua, which is already there.
+    fields[#fields + 1] = {
+        id          = 'feedbackMessage',
+        type        = 'textarea',
+        label       = 'Your message',
+        placeholder = "What's broken, slow, or worth changing?",
+        description = 'This reaches TIMMYG Studios, who make tChirp — not this '
+                   .. "server's staff. Nothing identifying you is sent with it.",
+        rows        = 6,
+        maxLength   = 2000,
+        defaultValue = feedbackMessage,
+        tab         = 'feedback',
+    }
+    fields[#fields + 1] = {
+        id      = 'feedbackSend',
+        type    = 'button',
+        label   = 'Send',
+        variant = 'primary',
+        tab     = 'feedback',
+    }
+
     return fields
 end
 
@@ -151,8 +202,11 @@ end
 -- them is asking the player to do the dialog's job, and the rows it does not
 -- get pressed for are simply wrong.
 --
--- Every row is `display` except Silence, which is a button, so there is no
--- focused input for a field swap to fight.
+-- Every row on Status is `display` except Silence, which is a button, so there is
+-- no focused input on that tab for a field swap to fight. The Feedback tab's
+-- textarea is a focused input, and it survives the swap because the page keys its
+-- field rows by field id: the DOM node and its caret are reused rather than
+-- rebuilt, and UpdateDialogFields preserves existing values on top of that.
 
 local dialogOpen = false
 local refreshGeneration = 0
@@ -179,14 +233,71 @@ local function open()
     local ok, err = pcall(function()
         shown = exports['tLib']:ShowDialog(DIALOG, {
             title       = 'tChirp',
-            size        = 'md',
+            -- 'lg', not 'md': 'md' was right for a single column of readouts and
+            -- is not right beside a sidebar, which takes a fixed 9rem out of the
+            -- dialog's width whatever is in it.
+            size        = 'lg',
             submitLabel = 'Close',
+            tabs        = {
+                { id = 'status',   label = 'Status' },
+                { id = 'feedback', label = 'Feedback', separator = true },
+            },
             fields      = buildFields(),
 
             onSubmit = function() dialogOpen = false end,
             onCancel = function() dialogOpen = false end,
 
+            -- The only field with a value: every row on Status is a `display`.
+            -- Staged only; see feedbackSend in onButtonClick.
+            onChange = function(fieldId, value)
+                if fieldId == 'feedbackMessage' then
+                    feedbackMessage = tostring(value or '')
+                end
+            end,
+
             onButtonClick = function(fieldId)
+                if fieldId == 'feedbackSend' then
+                    local message = feedbackMessage:gsub('^%s+', ''):gsub('%s+$', '')
+                    if message == '' then
+                        exports['tLib']:ShowToast(nil, 'error', 'tChirp',
+                            'Type a message first.', 2500)
+                        return
+                    end
+                    -- ⚠️ TWO FAILURE PATHS, NOT ONE, and missing the second is
+                    -- what made tRadio's first version of this button visibly do
+                    -- nothing: `SubmitFeedback` REFUSES by returning
+                    -- `false, reason` and never calling the callback, so a handler
+                    -- that only reads the callback leaves the player with no toast
+                    -- at all.
+                    --
+                    -- Not closed on success: the dialog is where the player is,
+                    -- and a panel that vanishes on Send reads as a crash. The
+                    -- toast is the receipt.
+                    local accepted = exports['tLib']:SubmitFeedback(message, function(result)
+                        local reason = type(result) == 'table' and result.error or nil
+                        if type(result) == 'table' and result.ok then
+                            feedbackMessage = ''
+                            exports['tLib']:UpdateDialogField(DIALOG, 'feedbackMessage',
+                                { defaultValue = '' })
+                            exports['tLib']:ShowToast(nil, 'success', 'tChirp',
+                                'Thanks — that reached TIMMYG Studios.', 3500)
+                        elseif reason == 'rate-limited' then
+                            -- Named rather than folded into the generic failure:
+                            -- one a minute per player, so a player who waits will
+                            -- get through and should be told to.
+                            exports['tLib']:ShowToast(nil, 'error', 'tChirp',
+                                'Too many messages just now. Try again in a minute.', 3500)
+                        else
+                            exports['tLib']:ShowToast(nil, 'error', 'tChirp',
+                                'That could not be sent. Your message is still here — try again later.', 4000)
+                        end
+                    end)
+                    if accepted ~= true then
+                        exports['tLib']:ShowToast(nil, 'error', 'tChirp',
+                            'That could not be sent. Your message is still here — try again later.', 4000)
+                    end
+                    return
+                end
                 if fieldId == 'silence' then
                     -- Re-resolved, NOT taken from the label the button was built
                     -- with. The player may have walked away, or another officer
