@@ -14,18 +14,11 @@ lua54 'yes'
 
 dependency 'tLib'
 
--- 1.0 — the first tLib that carries `occupancy` and `diag.command`, both of
--- which this resource is now configuration for. There is no lower floor to
--- express: 0.6 is the only earlier tLib ever released, and it has neither.
---
--- A floor that is too LOW is the failure this line exists to prevent, not one
--- that is too high: tLib's imports.lua answers an unknown module name with a
--- truthy export PROXY rather than nil, so a missing module is not caught by any
--- `if tlib.occupancy` guard. It lands as "attempt to index a function value"
--- partway down client/cl_chirp.lua — and for `diag.command`, which builds
--- `tchirp_diag` at FILE SCOPE in server/sv_chirp.lua, while that script loads —
--- instead of as "update tLib". The gate in @tLib/imports.lua runs before any
--- consumer script, which is what makes it the only place that can say the latter.
+-- 1.0 is the first tLib carrying `occupancy` and `diag.command`, which tChirp
+-- cannot run without. Do not lower this line to start on an older tLib: a
+-- missing module is not nil, it is a truthy export proxy, so no `if
+-- tlib.occupancy` guard catches it and you get "attempt to index a function
+-- value" partway down a script instead of "update tLib".
 tlib_min_version '1.0'
 
 
@@ -60,8 +53,7 @@ server_scripts {
     'server/sv_version.lua',
 }
 
--- No `escrow_ignore`. tChirp is free and source-available: escrow_ignore exists
--- to carve readable exceptions OUT of an encrypted build, so on a resource that
--- is never escrow-packed it is not a smaller carve-out, it is a claim about the
--- build that is not true. The whole tree is readable; there is nothing to
--- except. See LICENSE.
+-- No `escrow_ignore`, and do not add one. tChirp is never escrow-packed, so
+-- every file here is already readable; the block only carves exceptions out of
+-- an encrypted build, and declaring one would assert a build that does not
+-- exist. See LICENSE.

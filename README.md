@@ -20,6 +20,7 @@ Free, MIT-licensed, and not escrowed. There is no encrypted file in it.
 | `shared/config-spec.lua` | Validates `config.lua` at startup, on both VMs, before any other chunk runs |
 | `client/cl_sirens.lua` | The six-provider siren cascade. Also exported as `IsSirenActive` |
 | `client/cl_chirp.lua` | Park-kill detection and chirp playback |
+| `client/cl_menu.lua` | `/tchirp` — the in-game status dialog, and the one Silence action |
 | `server/sv_access.lua` | Who may put a car on the chirp list, through `tlib.access`. Ships `mode = "everyone"` |
 | `server/sv_chirp.lua` | The parked-vehicle list, what it refuses from a client, and `tchirp_diag` |
 | `server/sv_version.lua` | The startup update check |
@@ -61,13 +62,12 @@ driving it would mean asserting that a stub schedules correctly rather than that
 `tWeb/src/content/docs/tChirp/` on every push to `main`, wholesale — `rm -rf` then copy — so a page
 edited in tWeb instead of here is a page the next sync silently deletes.
 
-Checking documentation facts *here* rather than in tWeb is what makes checking them worth anything:
-every fact in those pages — the config options, the exports, the commands, the provider order —
-comes out of this resource. A doc goes stale because something changed here.
+The facts in those pages — config options, exports, commands, provider order — all come out of this
+resource, so `docs:check` runs here and not in tWeb. A doc goes stale because something changed here.
 
-⚠️ **There is no `docs/product.mdx`, deliberately.** The storefront page is authored in tWeb; adding
-one here would make the sync start overwriting it, silently. The workflow step is kept, with its
-absent-source guard, so that adding one later is a deliberate act.
+⚠️ **`docs/product.mdx` is the storefront listing, and this repo owns it.** Every push that touches
+`docs/` overwrites tWeb's `src/content/software/tchirp.mdx` wholesale, so edit the listing here. An
+edit made in tWeb is gone at the next push, and whoever made it has no reason to look here.
 
 ## Licence
 

@@ -13,10 +13,10 @@ if Config.debug then tlib.logger.setLevel(tlib.logger.DEBUG) end
 
 local occupancy = tlib.occupancy
 
---- How often the player's seat and siren are read. 500 ms is tChirp 1.0.0's rate
---- and is kept: the trigger is a park, the chirp itself is scheduled in seconds,
---- and the one thing a faster tick would buy — a fresher siren snapshot — is
---- bounded by the ELS's own park-kill timing rather than by this number.
+--- How often the player's seat and siren are read, and how often the playback
+--- loop below checks what is due. Lowering it costs a frame budget on every
+--- client for a fresher siren snapshot the ELS's own park-kill timing already
+--- bounds; raising it widens the park-kill snapshot window below by as much.
 local POLL_MS = 500
 
 -- ── Model lookup ──────────────────────────────────────────────────────────
@@ -141,11 +141,11 @@ CreateThread(function()
             tchirpClearSirenCache()
         end
 
-        -- Not `elseif`, and not gated on having been on foot a tick ago. Stepping
-        -- straight out of one cruiser into another is one tick, and tChirp 1.0.0
-        -- required a 0 → vehicle transition to clear a chirp, so that move left
-        -- the second car chirping with a driver sitting in it. So did getting in
-        -- before the list had synced, which is the common case on a busy server.
+        -- Not `elseif`, and not gated on having been on foot a tick ago.
+        -- Stepping straight out of one cruiser into another is a single tick, so
+        -- requiring a 0 → vehicle transition here would leave the second car
+        -- chirping with a driver sitting in it. So would getting in before the
+        -- list had synced, which is the common case on a busy server.
         if netId and netId ~= lastNetId then
             onFrontSeatTaken(netId)
         end
@@ -196,12 +196,11 @@ CreateThread(function()
 
                     log(('chirp — netId %d, sound %s'):format(netId, cfg.sound), tlib.logger.DEBUG)
 
-                    -- Its own thread, not a Wait() in this loop. tChirp 1.0.0
-                    -- waited here, which held the whole list for the length of
-                    -- the chirp: with three cars parked the second and third were
-                    -- each pushed a chirp-length later than the timer they had
-                    -- been given, every round. Two cars in a lot should chirp
-                    -- independently, and this is what makes them.
+                    -- Its own thread, not a Wait() in this loop. Waiting here
+                    -- would hold the whole list for the length of the chirp, so
+                    -- with three cars parked the second and third would each slip
+                    -- a chirp-length past their own timer, every round. Two cars
+                    -- in a lot are meant to chirp independently.
                     CreateThread(function()
                         Wait(math.random(Config.chirpMinDurationMs, Config.chirpMaxDurationMs))
                         stopChirp(netId, soundId)

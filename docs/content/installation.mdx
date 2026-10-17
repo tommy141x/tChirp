@@ -1,37 +1,21 @@
 ---
 title: "Installation"
-description: "Install tChirp on your FiveM server: requirements, server.cfg load order, the one thing to check, and how to confirm a park kill chirps."
+description: "Requirements, server.cfg load order, the vehicle list you must edit, and how to confirm a park kill chirps."
 order: 1
 group: "tChirp"
 ---
 
-tChirp has one dependency, no database, no NUI and no build step. Nothing in it is escrow-packed, so the folder you download is the folder that runs.
+One dependency, no database, no NUI, no build step. Nothing is escrow-packed.
 
 ## Requirements
 
 | Requirement | Detail |
 | --- | --- |
-| [tLib](/docs/tLib) | **v1.0 or newer.** tChirp declares `tlib_min_version '1.0'` and refuses to start below it. Free |
+| [tLib](/docs/tLib) | **v1.0 or newer**, free. tChirp refuses to start below it |
 | A FiveM server | `lua54`, declared by tChirp itself |
-| A siren system | Any of the six below — or none, in which case tChirp reads the plain GTA siren |
+| A siren system | tELS, JLS, LVC, LVC Fleet, ELS-FiveM or ALS — or none, and tChirp reads the plain GTA siren |
 
-### Siren systems it reads
-
-| System | How it is detected | Needs a resource name? |
-| --- | --- | --- |
-| tELS | `exports[...]:IsSirenActive(vehicle)` | Yes — `Config.sirenResources.tels` |
-| JLS | `exports[...]:IsSirenActive(vehicle)` | Yes — `Config.sirenResources.jls` |
-| Luxart Vehicle Control | the `lvc:UpdateThirdParty` event | No |
-| LVC Fleet | the same event as LVC | No |
-| ELS-FiveM | the `els:setSirenState_c` event | No |
-| Advanced Lighting System | the four `ALS:*SirenClient` events | No |
-| Plain GTA siren | `IsVehicleSirenOn` | No |
-
-<Callout type="info" title="Only tELS and JLS need a resource name">
-They are read through an export, which has to be called by name — so if you renamed either folder, set it in `Config.sirenResources`. The other four are read from an event, which arrives under its own name whatever the sending resource is called, so renaming those folders breaks nothing and there is nothing to set.
-</Callout>
-
-If your ELS is not in that table, or you want the detail behind each row, see [Siren systems](/docs/tChirp/siren-systems).
+Only tELS and JLS need their folder name, in `Config.sirenResources`. See [Siren systems](/docs/tChirp/siren-systems).
 
 ## Install
 
@@ -39,55 +23,26 @@ If your ELS is not in that table, or you want the detail behind each row, see [S
 
 ### Put the folder in place
 
-Extract it into `resources/`. The folder must be named exactly `tChirp` — its exports are published as `exports.tChirp`, and a FiveM resource is addressed by its folder name. No version suffix, exact casing.
+Extract into `resources/`. The folder must be named exactly `tChirp`, no version suffix — exports are published as `exports.tChirp`.
 
 ### Set the load order
-
-tLib must be ensured **before** tChirp.
 
 ```cfg
 ensure tLib
 ensure tChirp
 ```
 
-This is not optional ordering. Both of tChirp's script files take `tlib.logger` as they load, and `shared/config-spec.lua` validates your config at file scope, so tLib has to have started first. In the wrong order you get a `No such export` error instead.
+Both script files take `tlib.logger` as they load. Wrong order gives `No such export`.
 
 ### Check your vehicle list
 
-Nothing chirps unless its model is listed in `Config.chirpAssignments`. tChirp ships with the eight base-game police models, which almost certainly are **not** what your server runs.
-
-```lua
-Config.chirpAssignments = {
-    ['police'] = { sound = 'VEHICLES_HORNS_POLICE_WARNING', ref = 0 },
-    -- add your own spawn names here
-}
-```
-
-This is also the on/off switch: a model with no entry never chirps, and an empty table means nothing chirps at all.
+Nothing chirps unless its model is in [`Config.chirpAssignments`](/docs/tChirp/configuration#vehicle-assignments), which ships with eight base-game police models and is also the on/off switch.
 
 ### Optionally, choose who may chirp
 
-`Config.access` gates who can park-kill a car into a chirp. It ships `mode = "everyone"`, so
-**this step is optional** — skip it and nothing changes.
-
-```lua
-Config.access = {
-    mode = "ace",            -- or "job", "item", "custom", "everyone", or a list
-    ace  = "tchirp.use",
-    job  = { police = 0 },   -- name = MINIMUM grade; 0 accepts any
-}
-```
-
-```cfg
-add_ace group.police tchirp.use allow
-```
-
-Whatever you set here, hearing a chirp and silencing one stay open to every player — see
-[Configuration → Access](/docs/tChirp/configuration#access).
+`Config.access` ships `mode = "everyone"`, so skipping this changes nothing. Hearing and silencing stay open to everyone whatever you set — see [Access](/docs/tChirp/configuration#access).
 
 ### Start it and read the console
-
-A healthy boot prints the tChirp startup banner, and the two rows under the version are the whole summary:
 
 ```txt
   Version:  v2.0.0 — up to date
@@ -95,30 +50,21 @@ A healthy boot prints the tChirp startup banner, and the two rows under the vers
   Sirens:   auto
 ```
 
-`Models` is the size of `Config.chirpAssignments`; `Sirens` is `Config.sirenSystem`. There is no separate `started` line.
-
-A config problem prints **above** the banner, one line per problem naming the key, what was expected, what was found and the fix. An **error** stops tChirp starting, and the banner then draws with no `Models` row.
+Config problems print **above** the banner, naming the key, what was expected, what was found and the fix. An error stops tChirp starting, leaving no `Models` row.
 
 </Steps>
 
 ## Confirm it works
 
 1. Get into a configured vehicle as the driver.
-2. Turn the siren on with your ELS.
-3. **Let the ELS park-kill it** — put the car in park and let the siren cut out on its own. Do not switch it off by hand.
+2. Turn the siren on.
+3. **Let the ELS park-kill it** — put the car in park and let the siren cut out on its own.
 4. Get out and walk a few metres away.
 
-Within `chirpMinIntervalMs`–`chirpMaxIntervalMs` — 4 to 6 seconds by default — the car chirps, and keeps chirping until somebody sits in a front seat.
+The car chirps within 4–6 seconds and keeps chirping until somebody sits in a front seat.
 
-If nothing happens, run `/tchirp` **while sitting in the car**. It says whether that model is configured and which siren provider is answering for it, which is the pair of facts that explains nearly every silent install — see [How it decides → `/tchirp`](/docs/tChirp/usage#tchirp). Then turn on `Config.debug` and read [Troubleshooting](/docs/tChirp/troubleshooting); with debug on, every decision tChirp makes prints a line.
+If nothing happens, run [`/tchirp`](/docs/tChirp/usage#tchirp) in the car: whether the model is configured and which provider answers explains nearly every silent install. Then set `Config.debug` and read [Troubleshooting](/docs/tChirp/troubleshooting).
 
-## Verifying a change
+## Verifying a change without a server
 
-tChirp's Lua runs under a Lua VM, so you can check a config or code change without a game server:
-
-```bash
-bun install
-bun run test:lua
-```
-
-Three suites: the config spec against the config file it validates, the six-provider cascade, and the server's list including what it refuses from a client.
+`bun install && bun run test:lua` runs three suites under a Lua VM: the config spec, the provider cascade, and the server list including what it refuses.

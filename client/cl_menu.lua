@@ -14,9 +14,8 @@
 -- ownership check to it (see server/sv_chirp.lua).
 --
 -- Read-only rows are tLib's `display` type: text, full opacity, carrying no
--- value. They were disabled buttons until tLib grew the type, which meant seven
--- of this dialog's ten rows — every readout it exists for — rendered greyed out
--- with `cursor: not-allowed`, so the whole thing looked broken.
+-- value. Not disabled buttons — seven of this dialog's ten rows are readouts,
+-- and greyed out with `cursor: not-allowed` the whole thing looks broken.
 
 local log = tlib.logger.create('tChirp')
 
@@ -197,7 +196,7 @@ end
 RegisterCommand('tchirp', function()
     -- Asked every time rather than cached: this client's copy of the list is
     -- whatever the last broadcast said, and a client that connected during a
-    -- quiet period has an empty one. Same reason tUnit re-asks on /tunit.
+    -- quiet period has an empty one.
     TriggerServerEvent('tchirp:RequestChirpList')
     CreateThread(function()
         Wait(120)

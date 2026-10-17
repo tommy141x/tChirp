@@ -1,125 +1,62 @@
 ---
 title: "API reference"
-description: "tChirp's two client exports, two client events and two commands: IsChirping, IsSirenActive, tchirp:armed, tchirp:cleared, /tchirp and tchirp_diag."
+description: "tChirp's two client exports, two client events, the wire protocol and two commands."
 order: 5
 group: "tChirp"
 ---
 
-Two client exports, two client-side events, two commands. Nothing here is required to use tChirp — it is what another resource can read.
-
-<Callout type="danger" title="Exports resolve by folder name">
-Both calls below are `exports.tChirp`. The resource folder must be named exactly `tChirp` or neither resolves.
-</Callout>
+Two client exports, two client-side events, two commands. None of it is needed to use tChirp.
 
 ## Exports
 
-**Client-side.** Both.
+Both client-side, and both `exports.tChirp` — the folder must be named exactly that or neither resolves.
 
 | Export | Parameters | Returns | What it does |
 | --- | --- | --- | --- |
-| `IsChirping` | `vehicle: number` | `boolean` | Whether this vehicle is on the park-kill chirp list right now |
-| `IsSirenActive` | `vehicle: number` | `boolean` | Whether this vehicle's siren is on, according to whichever provider owns it |
+| `IsChirping` | `vehicle: number` | `boolean` | On the chirp list? Answers from the last list received, not the frame |
+| `IsSirenActive` | `vehicle: number` | `boolean` | Siren on, per the owning provider. Respects `Config.sirenSystem` |
 
-### IsChirping
+`IsSirenActive` reports the **siren**, not the lights and not park-kill state, so a park-killed car returns `false`.
 
-```lua
-local veh = GetVehiclePedIsIn(PlayerPedId(), false)
-if exports.tChirp:IsChirping(veh) then
-    -- this car was park-killed and nobody has got back in
-end
-```
-
-Answers from the list this client last received from the server, so it is accurate to the last broadcast rather than to the frame.
-
-### IsSirenActive
-
-```lua
-if exports.tChirp:IsSirenActive(someVehicle) then
-    -- its siren is on, whichever ELS this server runs
-end
-```
-
-This is the six-provider cascade, exported so another resource does not need its own copy. It respects `Config.sirenSystem`, so on a server that has pinned a single provider this answers for that provider only.
-
-It reports the **siren**, not the lights, and not park-kill state. A car sitting park-killed returns `false` — the siren really is off; that is what a park kill is.
-
-<Callout type="danger" title="Call it on the local player's vehicle, and nothing else">
-LVC, LVC Fleet, ELS-FiveM and ALS are read from events that tChirp caches **against the vehicle the local player is in**. Asking about any other vehicle has two costs:
-
-- Those four providers have nothing cached for it and answer "not mine", so the answer can only come from tELS, JLS or the native siren flag.
-- The cache is **reset** by the question. A checker asked about a vehicle that is not the cached one clears its state, so a resource polling this export across nearby traffic can wipe the local player's own siren state and suppress the park kill that would have followed.
-
-See [Siren systems](/docs/tChirp/siren-systems#asking-about-a-vehicle-you-are-not-in).
+<Callout type="danger" title="Call IsSirenActive on the local player's vehicle, and nothing else">
+LVC, LVC Fleet, ELS-FiveM and ALS are cached **against the vehicle the local player is in**, so any other vehicle costs twice: those four answer "not mine", and the question **resets** the cache, suppressing your own park kill. See [Siren systems](/docs/tChirp/siren-systems#asking-about-a-vehicle-you-are-not-in).
 </Callout>
 
 ## Events
 
-**Client-side, local.** Both are raised with `TriggerEvent`, so they are for other client scripts on the same machine rather than for the server.
+Local, raised with `TriggerEvent`. Both fire on **every** client receiving the list, not only the one that parked the car.
 
 | Event | Arguments | When |
 | --- | --- | --- |
-| `tchirp:armed` | `netId: number` | This client learned that a vehicle is now on the chirp list |
-| `tchirp:cleared` | `netId: number` | This client learned that a vehicle has left it |
-
-```lua
-AddEventHandler('tchirp:armed', function(netId)
-    local veh = NetworkGetEntityFromNetworkId(netId)
-    -- e.g. flag it on a mobile data terminal
-end)
-```
-
-Both fire on **every** client that receives the list, not only the one that parked the car, because every client runs the playback. They are not a park-kill notification for the officer who left — they are "the list changed, here".
+| `tchirp:armed` | `netId: number` | A vehicle is now on the chirp list |
+| `tchirp:cleared` | `netId: number` | A vehicle has left it |
 
 ## Network events
 
-These are tChirp's own wire protocol. Everything the server accepts from a client is [validated against `config.lua`](/docs/tChirp/usage#what-the-server-refuses).
+Everything the server accepts is [validated against `config.lua`](/docs/tChirp/usage#what-the-server-refuses). Only `AddChirpVehicle` is gated by [`Config.access`](/docs/tChirp/configuration#access).
 
 | Event | Direction | Arguments |
 | --- | --- | --- |
-| `tchirp:AddChirpVehicle` | client → server | `netId: number`, `soundCfg: { sound, ref }` |
-| `tchirp:RemoveChirpVehicle` | client → server | `netId: number` |
+| `tchirp:AddChirpVehicle` | client → server | `netId`, `soundCfg: { sound, ref }` |
+| `tchirp:RemoveChirpVehicle` | client → server | `netId` |
 | `tchirp:RequestChirpList` | client → server | none |
-| `tchirp:SyncChirpList` | server → client | `list: table` keyed by `netId` |
-
-`AddChirpVehicle` is the one of the four that is gated — see
-[`Config.access`](/docs/tChirp/configuration#access). The other three are not gated.
+| `tchirp:SyncChirpList` | server → client | `list` keyed by `netId` |
 
 ### The `tChirp:` spellings are gone in 2.0.0
 
-The lowercase `tchirp:` form is the only one now. The verbs are unchanged — only the prefix.
-
-**If you fire or listen for a `tChirp:` name, you must rename it.** Nothing is registered under
-the old spellings and nothing is fired under them.
-
-| Gone | Use | What happens if you don't |
-| --- | --- | --- |
-| `tChirp:armed` | `tchirp:armed` | Your handler never runs |
-| `tChirp:cleared` | `tchirp:cleared` | Your handler never runs |
-| `tChirp:SyncChirpList` | `tchirp:SyncChirpList` | Your handler never runs; you never see the chirp list |
-| `tChirp:AddChirpVehicle` | `tchirp:AddChirpVehicle` | Your trigger goes nowhere. The car does not chirp |
-| `tChirp:RemoveChirpVehicle` | `tchirp:RemoveChirpVehicle` | Your trigger goes nowhere. The car keeps chirping |
-| `tChirp:RequestChirpList` | `tchirp:RequestChirpList` | Your trigger goes nowhere. No list arrives |
+Lowercase `tchirp:` is the only form; the verbs are unchanged. Rename every `tChirp:` name in your code: a stale listener never runs, a stale trigger goes nowhere.
 
 <Callout type="warning" title="A wrong event name is silent in FiveM">
-  Triggering an event nobody has registered is not an error — it does nothing, quietly. That is
-  why there is no console warning to look for here, and why this page lists the symptom for each
-  name instead. If an integration stopped working at 2.0.0, this table is the first place to check.
+  Triggering an event nobody registered is not an error — it does nothing, quietly, with no console
+  warning. If an integration stopped at 2.0.0, start here. If you subscribed to both spellings in
+  1.x, drop the `tChirp:` one: you were handling every event twice.
 </Callout>
-
-In 1.x both spellings were registered and fired. If you had subscribed to **both** names to be
-safe, drop the `tChirp:` one — you were handling every event twice.
 
 ## Commands
 
 | Command | Who | What |
 | --- | --- | --- |
-| `/tchirp` | anyone, client-side | The status dialog: whether this car is configured to chirp, which siren provider answers for it, what is chirping nearby, and a Silence button. [Full row list](/docs/tChirp/usage#tchirp) |
-| `tchirp_diag` | console, or `command.tchirp_diag` | Prints the installed version, the tLib version, who may chirp, the provider, the timing, how many models are configured, how many vehicles are chirping, and a fresh run of the config checks |
+| `/tchirp` | anyone, client-side | Status dialog, plus a Silence button. [Full row list](/docs/tChirp/usage#tchirp) |
+| `tchirp_diag` | console, or `command.tchirp_diag` | Version, tLib version, access, provider, timing, counts, fresh config check |
 
-`tchirp_diag` is registered `restricted`, so FiveM's own ACE covers it and the server console can always run it:
-
-```cfg
-add_ace group.admin command.tchirp_diag allow
-```
-
-It reports the configuration as it was **at startup**, not the live table, so a value something has changed since boot cannot be mistaken for something you wrote.
+`tchirp_diag` is `restricted`: `add_ace group.admin command.tchirp_diag allow`. It reports the configuration **at startup**, not the live table.

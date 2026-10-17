@@ -24,19 +24,14 @@ end
 
 -- ── What a client is allowed to ask for ───────────────────────────────────
 --
--- ⚠️ THE PAYLOAD ARRIVES FROM A PLACE A PLAYER CONTROLS.
+-- ⚠️ THE PAYLOAD ARRIVES FROM A PLACE A PLAYER CONTROLS. Trusting it means any
+-- client can make any networked vehicle emit any sound it names.
 --
--- tChirp 1.0.0 checked only that `soundCfg.sound` was a non-empty string and
--- then broadcast it to every client, which meant any connected client could make
--- any networked vehicle in the world emit any native sound or soundset, at the
--- interval the config sets, for as long as it existed. That is not an escrow or
--- anticheat matter — it is this resource handing a client a loudspeaker.
---
--- The fix is that the server already HAS the answer. `config.lua` is a
+-- The server already has the answer, so it never has to. `config.lua` is a
 -- shared_script, so `Config.chirpAssignments` is right here: the set of
 -- (sound, ref) pairs this server has configured is closed, small, and known
 -- before any client says anything. A payload is honoured only if it is one of
--- them, so the worst a forged event can now do is pick a different one of the
+-- them, so the worst a forged event can do is pick a different one of the
 -- server's OWN configured tones.
 
 local allowedSounds = {}   -- "sound\0ref" → true
@@ -152,18 +147,14 @@ RegisterNetEvent('tchirp:AddChirpVehicle', function(netId, soundCfg)
             log(('player %d asked for sound "%s" on netId %d, whose model is assigned "%s" — refused')
                 :format(src, tostring(soundCfg.sound), netId, tostring(expected.sound)),
                 tlib.logger.WARN)
-            -- A COMPATIBILITY warning, and the only one of this handler's three
-            -- refusals that is one. The other two are an owner's
-            -- Config.chirpAssignments not covering a model or a sound: operator
-            -- misconfiguration, which belongs to tlib.diag -- a store that
-            -- cannot delete a row must not fill with those.
+            -- The only one of this handler's three refusals that is a
+            -- COMPATIBILITY warning: client and server both have an assignment
+            -- for the model and disagree, so one side reloaded its config and
+            -- the other did not. The other two refusals are an owner's
+            -- Config.chirpAssignments not covering a model or a sound, which is
+            -- misconfiguration and belongs in tchirp_diag, not here.
             --
-            -- Here client and server both HAVE an assignment for the model and
-            -- disagree about it, which means a client running a different
-            -- Config -- a restart that reloaded only one side, or a stale
-            -- cached config. A refusal that only logs hides that from us.
-            --
-            -- Neither sound name goes in the code: the code is the grouping key.
+            -- No sound name in the code: the code is the grouping key.
             tlib.telemetry.warn('chirp.assignment.mismatch', 'compatibility',
                 'a client asked for a sound its model is not assigned; client and server configs disagree')
             return
@@ -251,42 +242,26 @@ end)
 -- thing it must never do is require a module a given tLib might not carry in
 -- order to answer "why is my install not working".
 
--- ── What used to be in this file ────────────────────────────────────────────
---
--- The command's shape — the ACE gate, the pcall guard, the redactor and the
--- routing — is `tlib.diag.command` as of tLib 1.0. Eight resources had
--- written it by hand, and this copy had the ACE gate and none of the other
--- three. The redactor is the one that mattered: it had none, on the unstated
--- grounds that tChirp's config holds no credentials. That is the assumption
--- tDetector's own comment calls unsafe over time, because the guarded failure
--- is a key added later by somebody who did not read §13 — and tLib's redactor
--- is derived from the config rather than hand-listed, so it does not have to
--- stay true.
---
--- The routing is now the union rather than a choice between console and chat:
--- the server console always, because that is the copy that survives the caller
--- disconnecting, and the caller too when there was one.
+-- The gate, the pcall guard, the redactor and the routing are all
+-- `tlib.diag.command`'s. It prints to the server console always — that copy
+-- survives the caller disconnecting — and to the caller as well when there was
+-- one. The redactor is derived from the config rather than hand-listed, so a
+-- credential-shaped key added to config.lua later is masked without anyone
+-- having to remember this file.
 
 tlib.diag.command({
     name = 'tchirp_diag',
     title = 'tChirp diagnostics',
     spec = tchirpConfigSpec,
     report = function(ctx)
-        -- The snapshot, not the live table: `tlib.config.configured` returns what the
-        -- file said at boot, before anything could have mutated it.
+        -- The snapshot, not the live table: `tlib.config.configured` returns what
+        -- the file said at boot, before anything could have mutated it.
         --
-        -- Type-checked rather than called: which release added `configured` is not
-        -- recorded anywhere this repo can read, and tLib's export proxy does not
-        -- cover it — the proxy is for an unknown `tlib.<module>`, and `config`
-        -- resolves to a real module table, so a missing function here is a plain
-        -- nil and calling it would throw inside the one command an owner runs when
-        -- their install is already broken. The live table is a correct, slightly
-        -- weaker answer to the same question.
-        --
-        -- ⚠️ tlib.diag.command's pcall would now CATCH that throw and still print
-        -- the rest of the report, so this guard is no longer what keeps the command
-        -- alive. It is kept because the weaker answer is a better outcome than half
-        -- a report plus a failure line.
+        -- Type-checked rather than called, because a tLib without `configured`
+        -- answers a plain nil for it. Falling back to the live table is a
+        -- slightly weaker answer to the same question, and a better outcome than
+        -- half a report plus a failure line in the one command an owner runs when
+        -- their install is already broken.
         local configFns = tlib.config
         local configured = (type(configFns.configured) == 'function' and configFns.configured('config.lua'))
             or Config

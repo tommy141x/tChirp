@@ -14,10 +14,13 @@
 --  EVENT-based (LVC, LVC Fleet, ALS, ELS-FiveM) push their state at us and we
 --  cache it. A FiveM event arrives under its own name regardless of what the
 --  sending resource is called, so there is nothing to configure and a renamed
---  LVC folder still works. tChirp 1.0.0 shipped a `Config.sirenResources.lvc`
---  key anyway, told owners to change it if their resource was renamed, and never
---  read it. It is gone; `shared/config-spec.lua` reports it if it is still in an
---  owner's file.
+--  LVC folder still works.
+--
+--  ⚠️ A leftover `Config.sirenResources.lvc` from tChirp 1.0.0 is NOT reported.
+--  tlib.config only sweeps TOP-LEVEL keys for unknowns, and `sirenResources`
+--  is declared as a bare table whose insides are resource names it cannot
+--  check. The key is simply never read. Delete it by hand when merging an old
+--  config forward.
 --
 --  ── nil is a third answer and it is the load-bearing one ───────────────────
 --

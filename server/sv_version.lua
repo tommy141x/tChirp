@@ -1,6 +1,5 @@
--- The same contract, unpublished-version handling and eight-second timeout as
--- tAFK, tELS, tDetector and tRadar. tChirp had no update check at all: an owner
--- running 1.0.0 had nothing that would ever tell them a release existed.
+-- The startup update check: one request, an eight-second timeout, and nothing
+-- held up if it fails.
 --
 -- `studios('tChirp', current)` is the TIMMYG Studios product changelog API. It
 -- reports "update check not run" rather than claiming the installed version is

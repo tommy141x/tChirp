@@ -1,59 +1,53 @@
 ---
 title: "tChirp"
-description: "A park-kill chirp reminder for FiveM emergency vehicles. Detects a park-killed siren through six ELS providers and chirps the parked car at a randomised interval until somebody gets back in."
+description: "A park-kill chirp reminder for FiveM emergency vehicles. Reads six ELS providers and chirps a parked car until somebody gets back in."
 order: 0
 group: "tChirp"
 ---
 
 ![](/assets/tChirp/banner.jpg)
 
-tChirp reproduces one small piece of real patrol car behaviour: when a siren is **park killed** — silenced automatically because the car has been put in park while still in pursuit mode — the car chirps at intervals until someone gets back in the front seat.
+When a siren is **park killed** — silenced because the car was put in park while still in pursuit mode — tChirp chirps that car at intervals until someone takes a front seat. It never turns a siren on or off; it watches whichever ELS you run.
 
-It is a reminder, not a siren controller. tChirp never turns a siren on or off. It watches whichever ELS your server already runs, notices that a siren was live when the officer left, and then makes that car chirp.
-
-It is **free**, MIT-licensed and not escrowed. There is no encrypted file in it, and no public repository — the source is the resource you install.
+Free, MIT, not escrowed. No encrypted file and no public repository: the source is what you install.
 
 ## What it is not
 
-- **Not an ELS.** It adds no lighting, no siren control and no tones of its own. It needs an existing siren system, or the plain GTA siren.
-- **Not a per-player sound.** The chirp is played from the vehicle, positionally, on every client near it. Walking away makes it quieter.
-- **Not a siren tone library.** The sounds are native GTA sound names, or a soundset from a resource you already have.
-- **Not standalone.** It needs [tLib](/docs/tLib) v1.0 or newer, which is free.
+- **Not an ELS.** No lighting, no siren control, no tones of its own.
+- **Not a per-player sound.** It plays positionally from the vehicle, on every nearby client.
+- **Not a tone library.** Sounds are native GTA names, or a soundset you have.
+- **Not standalone.** Needs [tLib](/docs/tLib) v1.0 or newer, free.
 
 ## Start here
 
 <DocCards>
   <DocCard href="/docs/tChirp/installation" title="1. Installation">
-    Requirements, load order, and how to confirm a chirp.
+    Requirements, load order, first chirp.
   </DocCard>
 
   <DocCard href="/docs/tChirp/configuration" title="2. Configuration">
-    Every option in `config.lua`, with its type and default.
+    Every `config.lua` option, with type and default.
   </DocCard>
 
   <DocCard href="/docs/tChirp/usage" title="3. Usage">
-    Park-kill detection, the front-seat rule, `/tchirp`, and what the server refuses.
+    Park-kill detection and `/tchirp`.
   </DocCard>
 
   <DocCard href="/docs/tChirp/siren-systems" title="4. Siren systems">
-    How each ELS is read, the cascade order, and what to do if yours is not one of them.
+    How each ELS is read.
   </DocCard>
 
   <DocCard href="/docs/tChirp/api-reference" title="5. API reference">
-    Two exports, two local events, two commands.
+    Exports, events, commands.
   </DocCard>
 
   <DocCard href="/docs/tChirp/troubleshooting" title="6. Troubleshooting">
-    Symptom-first fixes for the things that actually go wrong.
+    Symptom-first fixes.
   </DocCard>
 </DocCards>
 
 ## Upgrading from 1.0.0
 
-1.1.0 renamed six options to carry their unit and carried your old values across for that one release. **2.0.0 does not.** A 1.0.0 `config.lua` still loads, but each old key is now reported at boot as a setting nothing reads, and the new key falls back to its shipped default — except `ChirpAssignments`, which has no default and takes tChirp's two main script files down with a Lua error.
-
 <Callout type="danger" title="Check your config before upgrading to 2.0.0">
-Lowercase the first letter of the six renamed keys. The full mapping, and what each one silently falls back to, is in [Configuration → Renamed, and no longer carried over](/docs/tChirp/configuration#renamed-and-no-longer-carried-over).
+1.1.0 carried your values onto six renamed options for one release; **2.0.0 does not**. Lowercase the first letter of each: [Renamed, and no longer carried over](/docs/tChirp/configuration#renamed-and-no-longer-carried-over). `chirpAssignments` falls back to empty, so nothing chirps. `Config.LVCResourceName` was never read by any version — see [Settings that are gone](/docs/tChirp/configuration#settings-that-are-gone).
 </Callout>
-
-`Config.LVCResourceName` is documented in the old GitBook page and was not read by 1.0.0 either — LVC is detected from an event, which arrives under its own name whatever the resource is called. See [Configuration](/docs/tChirp/configuration#settings-that-are-gone).

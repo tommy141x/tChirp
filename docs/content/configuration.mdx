@@ -1,180 +1,103 @@
 ---
 title: "Configuration"
-description: "Every option in tChirp's config.lua with its type and default — who may chirp, the siren provider, chirp timing, per-model sound assignments, and the renamed-in-1.1.0 settings."
+description: "Every option in tChirp's config.lua with its type and default: access, the siren provider, chirp timing, per-model sound assignments, and the keys renamed in 1.1.0."
 order: 2
 group: "tChirp"
 ---
 
-Everything is in `config.lua`. There is no database, no in-game panel and no escrow: edit the file, restart the resource.
+Everything is in `config.lua`. Edit the file, restart the resource. tChirp runs with zero edits.
 
-tChirp runs with zero edits. Nothing here is required.
+## Access
 
-Every key you delete comes back as something sane. Six come back as the value the shipped file carries. `chirpAssignments` comes back as empty, which starts the resource and chirps for nothing. The two that have no shipped default still answer: `access` falls back to tLib's own `everyone`, and `sirenResources` falls back to "no export-based provider is named".
-
-## The two you will actually change
-
-| Option | Why |
-| --- | --- |
-| `Config.chirpAssignments` | Ships with the eight base-game police models. Your server runs different ones |
-| `Config.sirenSystem` | `auto` covers a mixed fleet. Pin it if you run exactly one ELS and want a wrong answer to be loud |
-
-## Full reference
-
-### Access
-
-Who may put a car on the chirp list — i.e. who may park-kill. **The default is
-`everyone`**, so on a default install this block changes nothing at all.
+Who may park-kill a car onto the chirp list. **The default is `everyone`.**
 
 | Option | Type | Default | What it does |
 | --- | --- | --- | --- |
-| `Config.access.mode` | string \| list | `"everyone"` | `everyone`, `ace`, `job`, `item`, `custom`, or a list of them — a list passes if **either** does |
-| `Config.access.ace` | string | `"tchirp.use"` | For `mode = "ace"`. `add_ace group.police tchirp.use allow` |
-| `Config.access.job` | table | `{ police = 0, sheriff = 0, statepolice = 0 }` | For `mode = "job"`. Job **name = minimum grade**; `0` accepts any grade |
+| `Config.access.mode` | string \| list | `"everyone"` | `everyone`, `ace`, `job`, `item`, `custom`, or a list of them |
+| `Config.access.ace` | string | `"tchirp.use"` | For `mode = "ace"` |
+| `Config.access.job` | table | `{ police = 0, sheriff = 0, statepolice = 0 }` | **name = minimum grade**; `0` accepts any |
 | `Config.access.item` | string | `"police_radio"` | For `mode = "item"` |
 | `Config.access.count` | number | `1` | How many of that item |
 | `Config.access.custom` | function | `nil` | Takes a player id, returns `true` to allow |
 
-Six frameworks and nine inventories resolve out of the box, as two **independent** questions —
-a server can gate on a nat2k15 job and an `ox_inventory` item at once. Every failure
-**denies**: an absent framework, an unset ace, a `custom` that errors.
+A list passes if **either** entry does. Six frameworks and nine inventories resolve out of the box, and every failure denies.
 
 <Callout type="info" title="This gates adding a chirp, not hearing one or stopping one">
-  Whatever you set here, two things stay open to every player: **hearing** a chirp and
-  **silencing** one. Playback is client-side (`PlaySoundFromEntity`), so a civilian standing
-  beside a chirping patrol car hears it. And silencing is accepted from anyone — the officer
-  who parks a car and the officer who takes it out are routinely different people.
+  Playback is client-side, so a civilian beside a chirping patrol car hears it, and silencing is
+  accepted from anyone.
 </Callout>
 
-<Callout type="note" title="There is no tchirp.admin">
-  tChirp has no administrative surface: it persists nothing and writes no file. The one
-  admin-shaped thing in it is `tchirp_diag`, which is registered `restricted`, so FiveM's own
-  `command.tchirp_diag` covers it. Do not add a `tchirp.admin` ACE to your `server.cfg` —
-  nothing reads it.
-</Callout>
-
-### Siren provider
+## Siren provider
 
 | Option | Type | Default | What it does |
 | --- | --- | --- | --- |
-| `Config.sirenSystem` | string: `auto` \| `tels` \| `lvc` \| `lvc_fleet` \| `els_fivem` \| `jls` \| `als` \| `native` | `"auto"` | Which siren system is asked whether the siren was on. `auto` cascades through all of them |
-| `Config.sirenResources` | table | `{ tels = 'tELS', jls = 'Jace3483_JLS' }` | Folder names of the two **export-based** providers. Only change these if you renamed tELS or JLS |
+| `Config.sirenSystem` | `auto` \| `tels` \| `lvc` \| `lvc_fleet` \| `els_fivem` \| `jls` \| `als` \| `native` | `"auto"` | Which system is asked whether the siren was on |
+| `Config.sirenResources` | table | `{ tels = 'tELS', jls = 'Jace3483_JLS' }` | Folder names of the two export-based providers |
 
-`auto` tries providers in this order and takes the first one that recognises the vehicle:
+`auto` takes the first provider that recognises the vehicle; pinning one removes the fallback. See [Siren systems](/docs/tChirp/siren-systems).
 
-```txt
-tels → lvc / lvc_fleet → els_fivem → jls → als → native
-```
-
-A provider that does not recognise the vehicle passes, which is what makes a mixed fleet work: tELS cars are answered by tELS and LVC cars by LVC on the same server. `native` is last because it always answers, so it can only ever be the fallback.
-
-<Callout type="warning" title="Pinning a provider is not a small change">
-`Config.sirenSystem = 'lvc'` means LVC and nothing else. A vehicle LVC does not know about is then reported as "siren off" and never chirps — there is no fall-through to the native check. Use `auto` unless you have a reason.
-</Callout>
-
-### Chirp timing
+## Chirp timing
 
 | Option | Type | Default | What it does |
 | --- | --- | --- | --- |
-| `Config.chirpMinIntervalMs` | number ≥ 1 | `4000` | Shortest gap between chirps, in ms |
-| `Config.chirpMaxIntervalMs` | number ≥ 1 | `6000` | Longest gap between chirps, in ms |
-| `Config.chirpMinDurationMs` | number ≥ 1 | `75` | Shortest chirp, in ms |
-| `Config.chirpMaxDurationMs` | number ≥ 1 | `125` | Longest chirp, in ms |
+| `Config.chirpMinIntervalMs` | number ≥ 1 | `4000` | Shortest gap between chirps, ms |
+| `Config.chirpMaxIntervalMs` | number ≥ 1 | `6000` | Longest gap between chirps, ms |
+| `Config.chirpMinDurationMs` | number ≥ 1 | `75` | Shortest chirp, ms |
+| `Config.chirpMaxDurationMs` | number ≥ 1 | `125` | Longest chirp, ms |
+| `Config.debug` | boolean | `false` | `DEBUG` log level on client and server |
 
-Both ranges are inclusive and are drawn fresh for every chirp, so no two chirps are identical. Setting a minimum equal to its maximum is legal and gives a fixed value.
+Ranges are inclusive and drawn fresh per chirp. Min equal to max gives a fixed value; min above max is refused at startup; there is no upper bound. `Config.debug` prints a line per park kill, sync, chirp and refusal — leave it off on a live server.
 
-Setting a minimum **above** its maximum is refused at startup, naming the file, both keys and both values.
-
-There is no upper bound on any of the four.
-
-### Vehicle assignments
+## Vehicle assignments
 
 | Option | Type | Default | What it does |
 | --- | --- | --- | --- |
-| `Config.chirpAssignments` | table | eight base-game police models | Vehicle spawn name → the sound that model chirps |
+| `Config.chirpAssignments` | table | eight base-game police models | Spawn name → the sound that model chirps |
 
 ```lua
 Config.chirpAssignments = {
     ['police']  = { sound = 'VEHICLES_HORNS_POLICE_WARNING', ref = 0 },
-    ['ambulance'] = { sound = 'VEHICLES_HORNS_AMBULANCE_WARNING', ref = 0 },
+    ['police2'] = { sound = 'SIREN_PRIORITY', ref = 'DLC_WMSIRENS_SOUNDSET' },
 }
 ```
 
-| Field | Type | What it is |
-| --- | --- | --- |
-| `sound` | string | The native sound name passed to `PlaySoundFromEntity` |
-| `ref` | string or `0` | A soundset name, or `0` for the standard native sounds |
+`sound` goes to `PlaySoundFromEntity`; `ref` is a soundset name or `0` for these:
 
-Sounds that need no extra resource, with `ref = 0`:
-
-| `sound` | What it is |
+| `sound`, with `ref = 0` | What it is |
 | --- | --- |
-| `VEHICLES_HORNS_POLICE_WARNING` | Short attention chirp. The shipped default |
-| `VEHICLES_HORNS_SIREN_1` | Wail — a long continuous tone |
+| `VEHICLES_HORNS_POLICE_WARNING` | Short attention chirp. The default |
+| `VEHICLES_HORNS_SIREN_1` | Wail |
 | `VEHICLES_HORNS_SIREN_2` | Yelp |
-| `VEHICLES_HORNS_AMBULANCE_WARNING` | Powercall / ambulance chirp |
+| `VEHICLES_HORNS_AMBULANCE_WARNING` | Powercall |
 
-If you already run WM Sirens, its soundset works as a `ref`:
-
-```lua
-['police'] = { sound = 'SIREN_PRIORITY', ref = 'DLC_WMSIRENS_SOUNDSET' },
-```
+A malformed entry — no `sound`, or a bare number where the table belongs — is reported at startup **by model name**, not skipped.
 
 <Callout type="info" title="This table is also the on/off switch">
-A model with no entry never chirps. Deleting an entry is how you stop that model chirping, and an empty table is a supported state — tChirp loads and does nothing.
-
-**Deleting the whole key is not the same as emptying it.** There is no shipped default for this one, so `Config.chirpAssignments = {}` is the "nothing chirps" setting and removing the line altogether is a Lua error in both of tChirp's main script files.
+A model with no entry never chirps, and `{}` is a supported "nothing chirps" state. Deleting the key entirely is equivalent: it defaults to `{}`. Before 2026-10-16 it had no default, and an absent key took both main script files down with `bad argument #1 to 'pairs'`.
 </Callout>
-
-A malformed entry — a missing `sound`, or a bare number where the table belongs — is reported at startup by model name rather than skipped, so one car that never chirps while the rest do is traceable to a line in the file.
-
-### Diagnostics
-
-| Option | Type | Default | What it does |
-| --- | --- | --- | --- |
-| `Config.debug` | boolean | `false` | Lowers tChirp's log level to `DEBUG` on both the client and the server |
-
-With it on you get a line for every park kill, every list sync, every chirp and every refusal. Leave it off on a live server: a busy department produces a line per chirp per parked car.
 
 ## Renamed, and no longer carried over
 
-1.1.0 renamed six keys and copied your old value onto the new name for one release. **2.0.0 does not.** If your `config.lua` still uses the 1.0.0 spellings, each one is reported at boot as doing nothing and the new key falls back to its shipped default.
+1.1.0 copied your value onto the new name for one release. **2.0.0 does not** — each old spelling is reported at boot as doing nothing.
 
-| Gone | Use | What happens if you don't |
+| Gone | Use | Falls back to |
 | --- | --- | --- |
-| `Config.ChirpMinInterval` | `Config.chirpMinIntervalMs` | Falls back to `4000`. Your chirp spacing is lost |
-| `Config.ChirpMaxInterval` | `Config.chirpMaxIntervalMs` | Falls back to the shipped maximum |
-| `Config.ChirpMinDuration` | `Config.chirpMinDurationMs` | Falls back to the shipped minimum |
-| `Config.ChirpMaxDuration` | `Config.chirpMaxDurationMs` | Falls back to the shipped maximum |
-| `Config.ChirpAssignments` | `Config.chirpAssignments` | Falls back to empty. The resource starts and nothing chirps |
-| `Config.Debug` | `Config.debug` | Falls back to `false`. Debug logging is off |
+| `Config.ChirpMinInterval` | `Config.chirpMinIntervalMs` | `4000` |
+| `Config.ChirpMaxInterval` | `Config.chirpMaxIntervalMs` | `6000` |
+| `Config.ChirpMinDuration` | `Config.chirpMinDurationMs` | `75` |
+| `Config.ChirpMaxDuration` | `Config.chirpMaxDurationMs` | `125` |
+| `Config.ChirpAssignments` | `Config.chirpAssignments` | empty — **nothing chirps** |
+| `Config.Debug` | `Config.debug` | `false` |
 
-The four timing keys now carry an `Ms` suffix. The values are milliseconds and always were, so copy your old numbers across unchanged.
-
-<Callout type="warning" title="A renamed ChirpAssignments chirps for nothing">
-Lowercasing the `C` is the whole fix, but the failure is quiet rather than loud: with the old
-spelling the key your fleet lives in is simply not read, `chirpAssignments` falls back to empty,
-and the resource starts clean and never chirps. The warning that explains it prints once per
-unread key at every start:
-
-```
-[tChirp] config.lua: Config.ChirpAssignments is not a setting this resource reads, so it is doing nothing.
-  Fix: check it against the documented settings, or delete it.
-```
-
-Until 2026-10-16 this was worse. `chirpAssignments` shipped with no default at all, and both
-`client/cl_chirp.lua` and `server/sv_chirp.lua` walk it with a bare `pairs()` at file scope, so an
-absent key took both files out with `bad argument #1 to 'pairs' (table expected, got nil)` — and
-`tchirp_diag`, the command you would reach for, was never registered to tell you. It now defaults
-to an empty table.
-</Callout>
+Timing values were always milliseconds, so copy your numbers across unchanged.
 
 ## Settings that are gone
 
-| Setting | What happened | Does it get reported? |
+| Setting | What happened | Reported? |
 | --- | --- | --- |
-| `Config.LVCResourceName` | **Not read by 1.0.0 either**, though the old GitBook page documents it. LVC is detected from the `lvc:UpdateThirdParty` event, which arrives under that name regardless of what the sending resource is called, so a resource name has nothing to be used for | **Yes** — one line at every boot, as a setting nothing reads |
-| `Config.sirenResources.lvc` | Same: LVC needs no resource name | **No.** `Config.sirenResources` is checked for its *type* and nothing else, so a leftover key inside it is ignored in silence. Delete it yourself |
+| `Config.LVCResourceName` | **Never read, by any version**, despite the old GitBook page | **Yes**, per boot |
+| `Config.sirenResources.lvc` | Same — LVC needs no name | **No.** Delete it yourself |
 
 <Callout type="warning" title="The old GitBook page describes a different assignment format">
-It documents `Config.ChirpAssignments` as a map of vehicle name to a **siren ID from `lvc/SIRENS.lua`**, as in `['police'] = 4`. No released tChirp reads that shape — the value is a table of a native sound name and a soundset, exactly as above. A bare number is reported as an error at startup, naming the model.
+It documents `Config.ChirpAssignments` as vehicle name to a **siren ID from `lvc/SIRENS.lua`**, as in `['police'] = 4`. No released tChirp reads that shape — a bare number errors at startup, naming the model.
 </Callout>

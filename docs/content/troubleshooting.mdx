@@ -1,36 +1,23 @@
 ---
 title: "Troubleshooting"
-description: "Symptom-first fixes for tChirp: nothing chirps, everything chirps, only some vehicles chirp, the chirp never stops, and the errors that name tLib."
+description: "Symptom-first fixes: nothing chirps, everything chirps, only some vehicles chirp, the chirp never stops, and the errors that name tLib."
 order: 6
 group: "tChirp"
 ---
 
-Turn on `Config.debug` first. With it on, every decision prints a line, and which line is **missing** is usually the whole answer.
-
-```lua
-Config.debug = true
-```
-
-Then `restart tChirp`, and run `tchirp_diag` in the server console for the configuration as it was actually read. From in game, `/tchirp` answers the two questions this page asks most — is this model configured, and which provider is answering for it — without leaving the car.
+Set `Config.debug = true`, `restart tChirp`, and read which line is **missing**. `tchirp_diag` shows the configuration as read; `/tchirp` names the model and the answering provider.
 
 ## Nothing chirps at all
-
-Work down the list. Each step is a line you should see with `Config.debug` on.
 
 <Steps>
 
 ### Does it start?
 
-```txt
-  Models:   8 vehicle model(s) configured
-  Sirens:   auto
-```
-
-Those two rows sit under the version in tChirp's startup banner. A banner with **no** `Models` row means `config.lua` had an error and the server half never started — the errors print above the banner.
+No `Models` row in the banner means `config.lua` errored and the server half never started. The errors print above it.
 
 ### Is the model configured?
 
-`Models` is the size of `Config.chirpAssignments`. If it is 0, nothing can chirp. If it is 8, it is the eight shipped base-game models — check your car's **spawn name** is one of them. `/tchirp`, sitting in the car, answers this for that one car and prints its model hash when there is no entry.
+`Models` is the size of `Config.chirpAssignments`: `0` means nothing can chirp, `8` means the shipped models. Check your car's **spawn name** is one of them.
 
 ### Is the park kill detected?
 
@@ -38,13 +25,7 @@ Those two rows sit under the version in tChirp's startup banner. A banner with *
 [tChirp][DEBUG] park kill — vehicle 12345 (netId 67, sound VEHICLES_HORNS_POLICE_WARNING)
 ```
 
-No line here and the siren was never seen as on. That is a provider problem:
-
-- Your ELS is not one of the six, so only `IsVehicleSirenOn` answers — which many ELS resources never set.
-- `Config.sirenSystem` is pinned to a provider that does not own this vehicle. Set it to `auto`.
-- You switched the siren off by hand more than 500 ms before getting out, so by the last sample it was already off. Let the ELS park-kill it.
-
-[Siren systems](/docs/tChirp/siren-systems#my-els-is-not-one-of-these) has the symptom table for an ELS tChirp does not know about.
+No line means the siren was never seen as on: your ELS is not one of the six and never sets the native flag ([My ELS is not one of these](/docs/tChirp/siren-systems#my-els-is-not-one-of-these)); or `Config.sirenSystem` is pinned to a provider that does not own this car; or you killed the siren by hand over 500 ms before getting out.
 
 ### Did the server accept it?
 
@@ -52,88 +33,37 @@ No line here and the siren was never seen as on. That is a provider problem:
 [tChirp][WARN] player 3 asked for sound "VEHICLES_HORNS_SIREN_1" on netId 67, whose model is assigned "VEHICLES_HORNS_POLICE_WARNING" — refused
 ```
 
-That one means the client and the server disagree about `config.lua` — almost always because the file was edited and only the client or only the server was restarted. `restart tChirp` restarts both.
-
-Two sibling refusals name a different cause:
-
-```txt
-[tChirp][WARN] player 3 asked to chirp netId 67, whose model has no entry in Config.chirpAssignments — refused
-[tChirp][WARN] player 3 asked for sound "SIREN_ALPHA", which is not in Config.chirpAssignments — refused
-```
-
-Both are the server declining to chirp something it has no assignment for. Add the model, or the sound, to `Config.chirpAssignments`.
+Client and server disagree about `config.lua`, almost always because only one was restarted — `restart tChirp` does both. Two sibling refusals name a model with no entry, or a sound in none.
 
 ### Did the list arrive?
 
-```txt
-[tChirp][DEBUG] chirp list synced — 1 vehicle(s)
-```
-
-Zero here after a park kill means the add did not land. Look for the refusal line above it.
+`chirp list synced — 0 vehicle(s)` after a park kill means the add did not land. Look for the refusal above it.
 
 ### Are the front seats empty?
 
-Nothing chirps while somebody is in a front seat. Walk away from the car entirely and watch again.
+Nothing chirps while a front seat is occupied.
 
 </Steps>
 
 ## Only some vehicles chirp
 
-Almost always `Config.chirpAssignments`. A model with no entry never chirps — add one, or copy the entry from a model that works.
-
-The other cause is a **malformed** entry, which is reported at startup by model name:
-
-```txt
-[tChirp] config.lua: Config.chirpAssignments["police2"] has no `sound` name.
-```
-
-If you upgraded from 1.0.0 and copied an example from the old GitBook page, check for `['police'] = 4` — a bare siren ID. That is not a shape any released tChirp reads. See [Configuration](/docs/tChirp/configuration#vehicle-assignments).
+A model with no [entry](/docs/tChirp/configuration#vehicle-assignments) never chirps. Otherwise it is a malformed entry, reported at startup by model name — if you copied from the old GitBook page, check for `['police'] = 4`, a bare siren ID no released tChirp reads.
 
 ## Every park chirps, even with the siren off
 
-A vehicle none of the providers claim falls through to `IsVehicleSirenOn`, and some ELS resources turn their siren "off" without telling the game engine — so the native check keeps reporting `true`.
-
-ALS is handled specifically for exactly this reason. If yours is a system tChirp does not know about, pin `Config.sirenSystem` to the closest match rather than leaving it on `auto`, or report the resource so it can be added — see [Siren systems](/docs/tChirp/siren-systems#my-els-is-not-one-of-these).
+A vehicle no provider claims falls through to `IsVehicleSirenOn`, and some ELS resources never clear that flag. See [My ELS is not one of these](/docs/tChirp/siren-systems#my-els-is-not-one-of-these).
 
 ## The chirp never stops
 
-Getting into a **front** seat clears it. A rear seat does not.
+A **front** seat clears it; a rear seat does not. If it survives that, the vehicle is gone but its network ID is still listed, and those are swept every 5 seconds.
 
-If it survives that, the vehicle's network ID is on the list but the vehicle is gone — the server sweeps those every 5 seconds, so give it a moment. A list that never empties after that is worth reporting with the output of `tchirp_diag`.
+## Errors and config messages
 
-## Errors that name tLib
-
-### `requires tLib v1.0 or newer`
-
-Your tLib is older than tChirp needs. Update tLib. tChirp refuses to start rather than failing later in a way that blames the wrong file.
-
-### `No such export` or tChirp fails to start
-
-tLib was not started first. In `server.cfg`:
-
-```cfg
-ensure tLib
-ensure tChirp
-```
-
-### `attempt to index a function value`
-
-Almost always the same cause as above, reached a different way. tLib answers an unknown module name with a placeholder function rather than `nil`, so a tLib too old to carry a module tChirp uses fails on first use instead of at the version gate. Update tLib.
-
-## Configuration errors
-
-Anything tChirp refuses to start on prints the file, the key, what was expected, what was found and a fix. Two are worth naming:
-
-| Message | Cause |
+| Message | Cause and fix |
 | --- | --- |
-| `Config.sirenSystem must be one of ...` | A provider name that does not exist. The list is in [Configuration](/docs/tChirp/configuration#siren-provider) |
-| `Config.chirpMinIntervalMs (...) is greater than Config.chirpMaxIntervalMs (...)` | An inverted range. Without this check it is a thread that dies silently and no chirps for the rest of the session |
-
-And one that is a warning rather than an error, so tChirp runs:
-
-```txt
-[tChirp] config.lua: Config.ChirpAssignments is not a setting this resource reads, so it is doing nothing.
-  Fix: check it against the documented settings, or delete it.
-```
-
-Every unknown key gets that line, including the six 1.0.0 spellings and `Config.LVCResourceName`. **The value is not carried onto the new key** — the new key falls back to its shipped default, silently. See [Configuration](/docs/tChirp/configuration#renamed-and-no-longer-carried-over) for what each one costs you.
+| `requires tLib v1.0 or newer` | Update tLib |
+| `No such export`, or tChirp fails to start | tLib was not started first. `ensure tLib` above `ensure tChirp` |
+| `attempt to index a function value` | Same cause. tLib answers an unknown module with a placeholder function, so a too-old tLib fails on first use |
+| `Config.sirenSystem must be one of ...` | A provider name that does not exist. See [Siren provider](/docs/tChirp/configuration#siren-provider) |
+| `chirpMinIntervalMs (...) is greater than chirpMaxIntervalMs (...)` | An inverted range. Unchecked, the chirp thread dies silently |
+| `... is not a setting this resource reads` | A warning, not an error. **The value is not carried onto the new key** — see [Renamed](/docs/tChirp/configuration#renamed-and-no-longer-carried-over) |

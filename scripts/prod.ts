@@ -63,6 +63,10 @@ const INCLUDE = [
   "shared/config-spec.lua",
   "client/cl_sirens.lua",
   "client/cl_chirp.lua",
+  // The /tchirp dialog. It shipped in the manifest and not in this list, so
+  // `bun run prod` has refused to build since 55bfde8 -- which is the gate
+  // working: a zip without it loads and then errors on the command.
+  "client/cl_menu.lua",
   "server/sv_access.lua",
   "server/sv_chirp.lua",
   "server/sv_version.lua",
