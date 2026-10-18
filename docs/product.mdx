@@ -31,7 +31,10 @@ provider: "tebex"
 #     store it links to disagree. Zeroing it is a Tebex action, not a code one.
 status: "published"
 media:
+  - { type: "youtube", src: "9zvYlkjs2vs", alt: "tChirp in a patrol car" }
   - { type: "image", src: "/assets/tChirp/thumb.jpg", alt: "tChirp" }
+# Explicit, because the gallery now leads with the video and `coverImage()`
+# would otherwise take a YouTube id as the store tile.
 coverImage: "/assets/tChirp/thumb.jpg"
 pricing:
   # ⚠️ `amount: 0` WITH a `packageId`, which is the opposite pairing to tDB's and
@@ -79,6 +82,8 @@ It is a reminder, not a siren controller: tChirp never turns a siren on or off. 
   An overview and a setup walkthrough are being recorded for tChirp. Until they land, the
   [documentation](/docs/tChirp) is the complete reference.
 </Callout>
+
+<YouTube id="9zvYlkjs2vs" title="tChirp in a patrol car" />
 
 <Chapter>
 
