@@ -25,3 +25,19 @@ config/config.local.lua
 # directory git has excluded, so the exception has to leave `assets/` listable.
 /assets/*
 !/assets/hero/
+
+# The Cfx/Tebex listing copy, and nothing else under assets/.
+#
+# `/assets/*` above is about captures: hero images, gallery stills and screen
+# recordings, which are large, regenerable and have no business in the history.
+# `assets/cfx/*.txt` is neither -- it is the product claim. Every warranty,
+# compatibility statement and non-affiliation line that goes to a buyer lives in
+# these two files, and until 2026-10-23 they were untracked in five of seven
+# resources: a copy change had no history, no review and no way back.
+#
+# ⚠️ A DIRECTORY-FORM IGNORE CANNOT BE NEGATED FROM INSIDE. `/assets/` (with the
+# trailing slash and no `*`) makes git skip the tree without reading it, so a
+# `!` rule below it never matches -- which is why the rule above is `/assets/*`.
+!/assets/cfx/
+/assets/cfx/*
+!/assets/cfx/*.txt
