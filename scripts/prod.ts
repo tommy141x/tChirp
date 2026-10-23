@@ -13,7 +13,7 @@
  * to obfuscate and no provenance token to arm, so what is left is the part that
  * actually goes wrong — deciding what ships.
  */
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
 import AdmZip from "adm-zip";
 import {
@@ -97,6 +97,17 @@ const INCLUDE = [
 assertManifestStaged(readFileSync(join(ROOT, "fxmanifest.lua"), "utf8"), INCLUDE);
 
 stageFiles(ROOT, DIST, INCLUDE);
+
+// MIT requires the notice in every copy, and the only thing putting it there is
+// the `"LICENSE"` line in the hand-maintained list above. `assertManifestStaged`
+// cannot cover it: it compares against fxmanifest.lua, which declares no
+// LICENSE and no README because neither is a script. MEASURED: deleting that one
+// line built green and produced a zip of 10 Lua files with no licence in it.
+const licence = join(DIST, "LICENSE");
+if (!existsSync(licence) || statSync(licence).size === 0) {
+  console.error("No LICENSE in the staged tree — add it back to INCLUDE; MIT needs it in the zip.");
+  process.exit(1);
+}
 
 // ── Runtime state must not be in the archive ────────────────────────────────
 //
