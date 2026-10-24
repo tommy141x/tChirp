@@ -13,10 +13,11 @@
  * to obfuscate and no provenance token to arm, so what is left is the part that
  * actually goes wrong — deciding what ships.
  */
-import { existsSync, readFileSync, statSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import AdmZip from "adm-zip";
 import {
+  mergeLicenceFiles,
   assertManifestStaged,
   checkStagedTree,
   createZip,
@@ -55,7 +56,6 @@ const DIST = join(ROOT, ".build", "dist");
 // sanitizer re-checks that below.
 const INCLUDE = [
   "fxmanifest.lua",
-  "LICENSE",
   // The install and configuration instructions a zip is the only copy of. The
   // full docs are on the site; a server owner who downloaded a zip has this.
   "README.md",
@@ -98,14 +98,28 @@ assertManifestStaged(readFileSync(join(ROOT, "fxmanifest.lua"), "utf8"), INCLUDE
 
 stageFiles(ROOT, DIST, INCLUDE);
 
+step("Merging the licence and notices");
+{
+  const bundle = mergeLicenceFiles({
+    root: ROOT,
+    dist: DIST,
+    name: "tChirp",
+    sources: [
+      { title: "Licence (MIT)", file: "LICENSE" }
+    ],
+  });
+  console.log(`  ${bundle.out} — ${bundle.sections.length} section(s), ${(bundle.bytes / 1024).toFixed(1)} KB`);
+}
+
+
 // MIT requires the notice in every copy, and the only thing putting it there is
 // the `"LICENSE"` line in the hand-maintained list above. `assertManifestStaged`
 // cannot cover it: it compares against fxmanifest.lua, which declares no
 // LICENSE and no README because neither is a script. MEASURED: deleting that one
 // line built green and produced a zip of 10 Lua files with no licence in it.
-const licence = join(DIST, "LICENSE");
-if (!existsSync(licence) || statSync(licence).size === 0) {
-  console.error("No LICENSE in the staged tree — add it back to INCLUDE; MIT needs it in the zip.");
+const licence = join(DIST, "server", "LICENSE.txt");
+if (!existsSync(licence) || !readFileSync(licence, "utf8").includes("MIT License")) {
+  console.error("No MIT text in server/LICENSE.txt — MIT needs the notice inside the zip.");
   process.exit(1);
 }
 
@@ -136,4 +150,8 @@ console.log(formatFindings("staged tree", findings, `${summary}, no forbidden ru
 // config files found would be the silent-zero failure the default refusal
 // exists to catch.
 step("Packaging");
+// One merged `server/LICENSE.txt` instead of up to four legal files at the resource
+// root. The root is what an operator sees when they extract the zip, and none of those
+// documents is something they open. The REPO keeps them separate -- different things
+// edit them at different times -- so the merge happens here, on the staged tree.
 createZip(new AdmZip(), DIST, join(ROOT, ".build", "tChirp.zip"), "tChirp");
