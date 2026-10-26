@@ -185,9 +185,10 @@ Nothing else is configured. `Config.sirenSystem` defaults to `auto`, which casca
     entry stops it chirping.
   </FaqItem>
   <FaqItem q="I am on 1.0.0. Does my config still work?">
-    Yes. Every option was renamed in 1.1.0 to carry its unit, and tLib's config validator copies each
-    old value onto its new name, uses it, and prints one line per rename naming the replacement.
-    Nothing resets to a default.
+    Your file loads, but every option was renamed in 1.1.0 to carry its unit and the old names are
+    not recognised. A leftover key is named in the console at every boot and that setting falls back
+    to its shipped default — deliberately, so a stale key cannot read as working. Copy your values
+    onto the new names once and the report goes quiet.
   </FaqItem>
 </Faq>
 

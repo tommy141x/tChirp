@@ -18,7 +18,7 @@ It is a reminder, not a siren controller: tChirp never turns a siren on or off. 
 
 ## Features
 
-- **Reads the ELS you already have** — tELS, Luxart Vehicle Control, LVC Fleet, ELS-FiveM, JLS and Advanced Lighting System, cascaded in that order, or the plain GTA siren if you run none of them
+- **Reads the ELS you already have** — tLS, Luxart Vehicle Control, LVC Fleet, ELS-FiveM, JLS and Advanced Lighting System, cascaded in that order, or the plain GTA siren if you run none of them
 - **Nothing to operate** — no keybind, no menu, no command an officer uses. The behaviour is the product
 - **Runs with zero edits** — every one of the eight options ships with a default, and a key you delete comes back as the value that shipped
 - **The front seat is the rule, both ways** — leaving a front seat with the siren on arms the chirp; taking a front seat clears it immediately, for everyone
@@ -66,8 +66,8 @@ Nothing else is configured. `Config.sirenSystem` defaults to `auto`, which casca
 |---|---|
 | Frameworks | None. It sits beside whatever siren system you already run |
 | Dependencies | tLib v1.0+ (free). Nothing else |
-| Siren systems read | tELS, Luxart Vehicle Control, LVC Fleet, ELS-FiveM, JLS, Advanced Lighting System, plain GTA siren |
-| Configurable provider names | tELS and JLS only — the two that are read through an export |
+| Siren systems read | tLS, Luxart Vehicle Control, LVC Fleet, ELS-FiveM, JLS, Advanced Lighting System, plain GTA siren |
+| Configurable provider names | tLS and JLS only — the two that are read through an export |
 | Database | None |
 | Runtime | lua54 |
 
@@ -81,7 +81,7 @@ Nothing else is configured. `Config.sirenSystem` defaults to `auto`, which casca
 
 ---
 
-**Upgrading to 2.0.0?** The `tChirp:` event spellings are gone — lowercase `tchirp:` is the only form, and the verbs are unchanged. Rename every `tChirp:` name in your code: a stale listener never runs and a stale trigger goes nowhere, silently. Config is unaffected; options renamed in 1.1.0 are still copied onto their new names by tLib's validator, which prints one line per rename.
+**Upgrading to 2.0.0?** The `tChirp:` event spellings are gone — lowercase `tchirp:` is the only form, and the verbs are unchanged. Rename every `tChirp:` name in your code: a stale listener never runs and a stale trigger goes nowhere, silently. Options renamed in 1.1.0 do not carry over: a leftover old key is named at every boot and that setting falls back to its shipped default, so copy your values across once.
 
 ---
 
