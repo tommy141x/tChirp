@@ -27,7 +27,7 @@ No `Models` row in the banner means `config.lua` errored and the server half nev
 
 No line means the siren was never seen as on: your ELS is not one of the six and leaves no siren audio for the fallback to find ([My ELS is not one of these](/docs/tChirp/configuration#my-els-is-not-one-of-these)); or `Config.sirenSystem` is pinned to a provider that does not own this car; or you killed the siren by hand over 500 ms before getting out.
 
-On 2.0.0 there was a third cause, now fixed: `Config.sirenSystem = 'lvc'` or `'lvc_fleet'` could **never** produce a park kill. LVC's own park kill zeroes its siren tone the instant you start getting out, about a second before you are clear of the seat, so tChirp always re-read the siren as off before it saw the seat empty. 2.0.1 does not believe a siren-off that arrives while you are climbing out. No shorter poll interval would have helped — the zero always lands first.
+There was a third cause, fixed in the current 2.0 build: `Config.sirenSystem = 'lvc'` or `'lvc_fleet'` could **never** produce a park kill. LVC's own park kill zeroes its siren tone the instant you start getting out, about a second before you are clear of the seat, so tChirp always re-read the siren as off before it saw the seat empty. It no longer believes a siren-off that arrives while you are climbing out. No shorter poll interval would have helped — the zero always lands first.
 
 ### Did the server accept it?
 
@@ -53,9 +53,9 @@ A model with no [entry](/docs/tChirp/configuration#vehicle-assignments) never ch
 
 ## Every park chirps, even with the siren off
 
-**On 2.0.0, this was tChirp's own bug and no config change fixed it.** A vehicle no provider claimed fell through to `IsVehicleSirenOn`, which reports the siren switch — and in GTA that switch is the light bar, so a unit parked at a scene with its lights on read as siren-on and every exit looked like a park kill. Update to 2.0.1, which reads `IsVehicleSirenAudioOn` instead, and unpin `Config.sirenSystem` if you pinned it to work around this.
+**This was tChirp's own bug, and no config change worked around it.** A vehicle no provider claimed fell through to `IsVehicleSirenOn`, which reports the siren switch — and in GTA that switch is the light bar, so a unit parked at a scene with its lights on read as siren-on and every exit looked like a park kill. The current 2.0 build reads `IsVehicleSirenAudioOn` instead, so re-download it and unpin `Config.sirenSystem` if you pinned it to work around this.
 
-Still happening on 2.0.1 means your ELS leaves GTA's own siren audio running after its own siren stops. See [My ELS is not one of these](/docs/tChirp/configuration#my-els-is-not-one-of-these).
+Still happening on the current build means your ELS leaves GTA's own siren audio running after its own siren stops. See [My ELS is not one of these](/docs/tChirp/configuration#my-els-is-not-one-of-these).
 
 ## The chirp never stops
 

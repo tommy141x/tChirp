@@ -1,5 +1,5 @@
 --[[----------------------------------------------------------------------
-    TIMMYG Studios — tChirp 2.0.1
+    TIMMYG Studios — tChirp 2.0.0
     config.lua — the file you edit. It is the only one.
 
     NOTHING HERE IS REQUIRED. tChirp runs with zero edits.

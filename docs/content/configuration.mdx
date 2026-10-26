@@ -48,7 +48,7 @@ tChirp asks one question: **was the siren on?** The default, `auto`, covers ever
 Only tLS and JLS are asked by export, so they are the only two whose folder name matters at all — and tChirp knows the names both of them ship under, current and previous, and uses whichever is actually running. Fill in `Config.sirenResources` only if you renamed a folder to something of your own. A name there that is not a started resource is ignored rather than trusted, so an old config pinning a name that has since changed upstream still works.
 
 <Callout type="info" title="The GTA fallback reads siren audio, not the light bar">
-`IsVehicleSirenOn` sounds like the right native and is not: it reports the siren **switch**, and in GTA that switch is the light bar. A unit parked at a scene with its lights on reads as siren-on, so every exit looked like a park kill. The fallback reads `IsVehicleSirenAudioOn` instead, which is false when the lights are up and the audio is silent. Changed in 2.0.1; if you pinned `Config.sirenSystem` to work around the old behaviour, unpin it.
+`IsVehicleSirenOn` sounds like the right native and is not: it reports the siren **switch**, and in GTA that switch is the light bar. A unit parked at a scene with its lights on reads as siren-on, so every exit looked like a park kill. The fallback reads `IsVehicleSirenAudioOn` instead, which is false when the lights are up and the audio is silent. Changed in the current 2.0 build; if you pinned `Config.sirenSystem` to work around the old behaviour, unpin it.
 </Callout>
 
 ### The cascade order
@@ -70,7 +70,7 @@ Most do, LVC included — it is the same "park kill" idea, applied to the siren 
 tChirp handles that by not believing a siren-off that arrives while you are getting out. It applies to LVC, LVC Fleet, ELS-FiveM and ALS, and it means **you do not have to turn your ELS's own park kill off** to use tChirp. A siren you switch off yourself while sitting in the car is still a siren off, and that car will not chirp.
 
 <Callout type="info" title="On LVC, leave Config.sirenSystem on auto">
-Pinning to `lvc` is not needed and costs you the fallback. `auto` reaches the LVC rung for any car LVC has reported a tone for, and the GTA fallback below it is silent on an LVC car anyway: LVC mutes GTA's own siren audio on the cars it controls, so the fallback cannot false-positive there. Before 2.0.1, `lvc` could never chirp at all — if that is why you pinned it, unpin it.
+Pinning to `lvc` is not needed and costs you the fallback. `auto` reaches the LVC rung for any car LVC has reported a tone for, and the GTA fallback below it is silent on an LVC car anyway: LVC mutes GTA's own siren audio on the cars it controls, so the fallback cannot false-positive there. In the first 2.0 build, `lvc` could never chirp at all — if that is why you pinned it, unpin it.
 </Callout>
 
 ### Asking about a vehicle you are not in
