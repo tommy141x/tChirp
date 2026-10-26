@@ -1,110 +1,86 @@
 -- Startup validation for config.lua, through tlib.config.
 --
--- Runs on BOTH VMs, immediately after config.lua and before any client or
--- server chunk, so a mistyped key is a line in the console at boot instead of a
--- setting that silently did nothing forever. Unvalidated, `chirpMinIntervalMs`
--- spelled `chirpMinInverval` reaches the chirp thread as nil and dies on
--- `math.random(nil, 6000)` with an error that names neither the file nor the key.
+-- Runs on BOTH VMs, immediately after config.lua and before any client or server
+-- chunk. Unvalidated, `chirpMinIntervalMs` spelled `chirpMinInverval` reaches the
+-- chirp thread as nil and dies on `math.random(nil, 6000)` with an error naming
+-- neither the file nor the key.
 --
--- ── Where the numbers live ───────────────────────────────────────────────────
+-- `config.lua` IS THE AUTHORITY. The `default =` fields are only what tlib.config
+-- writes into `Config` for a key the owner DELETED; it never overwrites a value
+-- the owner set. scripts/tests/config-spec.lua asserts the two files agree
+-- literal for literal, and that the shipped file passes with zero errors and
+-- zero warnings.
 --
--- `config.lua` IS THE AUTHORITY. The `default =` fields below are only what
--- tlib.config writes into `Config` for a key the owner DELETED; tlib.config never
--- overwrites a value the owner actually set. `scripts/tests/config-spec.lua`
--- asserts the two files agree, literal for literal, and that the shipped file
--- passes its own spec with zero errors and zero warnings.
---
--- Do not restate the non-scalar defaults (`sirenResources`,
--- `chirpAssignments`) here. The type is enough to catch the mistake that
--- actually happens — a bare string where a table belongs — and their INSIDES
--- are checked below, by code, because a shape error there is what silently
--- stops one model chirping.
---
--- ── The two pair rules are hand-written, and FATAL ───────────────────────────
---
--- tlib.config validates keys independently, and a `min`/`max` per key cannot
--- say "this key must not exceed that key". Both of tChirp's ranges are pairs.
--- Undeclared, a reversed pair is not a wrong value: it is a bare
+-- The two pair rules below are hand-written and FATAL, because tlib.config
+-- validates keys independently and a per-key min/max cannot say "this key must
+-- not exceed that key". Undeclared, a reversed pair is a bare
 -- `bad argument #2 to 'random' (interval is empty)` thrown inside a
--- Citizen.CreateThread, which kills the chirp loop for the rest of the session
--- and names nothing.
+-- Citizen.CreateThread, which kills the chirp loop for the session and names
+-- nothing.
 
 local RESOURCE = 'tChirp'
 local FILE = 'config.lua'
 
---- Global so `tchirp_diag` can re-run the same checks on demand rather than
+--- Global so `tchirp_diag` can re-run the same checks on demand, rather than
 --- asking an owner to restart and catch the boot lines scrolling past.
 tchirpConfigSpec = {
     file = FILE,
     resource = RESOURCE,
     keys = {
-        -- ── Access ───────────────────────────────────────────────────────────
-        -- tlib.access validates the INSIDE of the block (mode spelling, the
-        -- job map's grades, a `custom` that is not a function) and prints its
-        -- own problems at boot. Do not restate any of that here; the copy will
-        -- disagree with the one the gate acts on. All this spec owns is that
-        -- the key is called `access` and is a table.
-        --
-        -- No default. A missing block is legal: tlib.access falls back to its
-        -- own "everyone", which is the value config.lua ships, so deleting the
-        -- block changes nothing.
+        -- tlib.access validates the inside of the block (mode spelling, the job
+        -- map's grades, a `custom` that is not a function) and prints its own
+        -- problems at boot. Restating any of it here gives a copy that can
+        -- disagree with the one the gate acts on. No default, because a missing
+        -- block is legal: tlib.access falls back to its own "everyone", which is
+        -- what config.lua ships.
         access = { type = 'table' },
 
-        -- ── Siren provider ───────────────────────────────────────────────────
-        -- client/cl_sirens.lua resolves the value against a table of checkers,
-        -- and an unlisted name resolves to nil, which makes IsSirenActive
-        -- answer false forever. Without the oneOf a typo'd provider looks
-        -- exactly like "the chirp never works", with no error anywhere.
+        -- An unlisted name resolves to nil in cl_sirens.lua's checker table,
+        -- making IsSirenActive answer false forever. Without the oneOf a typo'd
+        -- provider looks exactly like "the chirp never works".
         sirenSystem = {
             type = 'string', default = 'auto',
             oneOf = { 'auto', 'tels', 'lvc', 'lvc_fleet', 'els_fivem', 'jls', 'als', 'native' },
         },
 
-        -- Only the type. The keys INSIDE it are resource names, which cannot be
-        -- validated without asserting that a server has a resource installed —
-        -- and every one of them is optional.
+        -- Only the type: the keys inside are resource names, which cannot be
+        -- validated without asserting a server has a resource installed, and
+        -- every one of them is optional.
         sirenResources = { type = 'table' },
 
-        -- ── Timing ───────────────────────────────────────────────────────────
-        -- min = 1 rather than 0: both go straight into math.random as the low
-        -- bound, and a 0 ms gap is a chirp every frame. No max -- the code
-        -- enforces no upper bound, so there is none to declare.
+        -- min = 1 rather than 0: both go into math.random as the low bound, and
+        -- a 0 ms gap is a chirp every frame.
         chirpMinIntervalMs = { type = 'number', default = 4000, min = 1 },
         chirpMaxIntervalMs = { type = 'number', default = 6000, min = 1 },
         chirpMinDurationMs = { type = 'number', default = 75, min = 1 },
         chirpMaxDurationMs = { type = 'number', default = 125, min = 1 },
 
-        -- ── Assignments ──────────────────────────────────────────────────────
-        -- A map of model name → { sound, ref }, so `list` would reject it.
-        -- An EMPTY table is legal and means "nothing chirps".
-        -- `default` matters here, unlike on the other tables. Both
-        -- client/cl_chirp.lua and server/sv_chirp.lua walk this with a bare
-        -- `pairs()` at FILE scope, so an operator who drops the key from
-        -- config.lua -- which merging a shipped config forward makes easy --
-        -- gets `bad argument #1 to 'pairs' (table expected, got nil)` and
-        -- NEITHER file loads. The resource is then dead and `tchirp_diag` is
-        -- never registered to say why. Empty means "no vehicle is assigned a
-        -- chirp", which starts clean and is what the documentation promises.
+        -- A map of model name → { sound, ref }, so `list` would reject it. An
+        -- empty table is legal and means "nothing chirps".
+        --
+        -- ⚠️ `default` matters here, unlike on the other tables. cl_chirp.lua and
+        -- sv_chirp.lua both walk this with a bare `pairs()` at FILE scope, so an
+        -- operator who drops the key -- which merging a shipped config forward
+        -- makes easy -- gets `bad argument #1 to 'pairs' (table expected, got
+        -- nil)` and NEITHER file loads. The resource is then dead with
+        -- `tchirp_diag` never registered to say why.
         --
         -- tlib.config assigns a default BY REFERENCE (`tbl[key] = def.default`),
         -- so this table is shared with Config. Nothing writes to it; if that
-        -- ever changes, copy it here instead.
+        -- changes, copy it here instead.
         chirpAssignments = { type = 'table', default = {} },
 
         debug = { type = 'boolean', default = false },
     },
 
-    -- Do not add a `deprecated` table. config.lua is not escrow-packed, so a
-    -- server that keeps its old file keeps every old key in it, and each one
-    -- must trip the unknown-key check -- named, at every boot, as a setting
-    -- that is doing nothing. Mapped silently instead, a renamed key would read
-    -- as working while the shipped default applied. The mapping belongs in
-    -- docs -> Configuration -> Settings that are gone.
+    -- ⚠️ No `deprecated` table: a silently mapped old key reads as working while
+    -- the shipped default applies. Old keys must trip the unknown-key check and
+    -- be named at every boot instead.
 }
 
---- Rules tlib.config cannot express, and the shape checks for the two tables it
---- is only told the type of. Separated from the spec so `tchirp_diag` can print
---- them with the rest.
+--- Rules tlib.config cannot express, plus the shape checks for the tables it is
+--- only told the type of. Separate from the spec so `tchirp_diag` can print them
+--- with the rest.
 --- @return string[] problems  empty when the file is coherent
 local function crossChecks(cfg)
     local problems = {}
@@ -114,9 +90,8 @@ local function crossChecks(cfg)
 
     local function pair(minKey, maxKey, what)
         local lo, hi = cfg[minKey], cfg[maxKey]
-        -- Only when both are numbers: a wrong TYPE is already an error from
-        -- tlib.config, and reporting it twice in different words reads like two
-        -- separate faults.
+        -- Only when both are numbers: a wrong type is already an error from
+        -- tlib.config, and reporting it twice reads like two separate faults.
         if type(lo) == 'number' and type(hi) == 'number' and lo > hi then
             bad(('Config.%s (%s) is greater than Config.%s (%s), so no %s can be drawn.\n  Fix: make %s the smaller of the two in %s.')
                 :format(minKey, tostring(lo), maxKey, tostring(hi), what, minKey, FILE))
@@ -127,9 +102,9 @@ local function crossChecks(cfg)
     pair('chirpMinDurationMs', 'chirpMaxDurationMs', 'chirp length')
 
     -- Assignment shapes. Reported rather than skipped: a malformed entry is one
-    -- model that quietly never chirps while every other one does, which is the
-    -- hardest version of this bug to notice. Not fatal — the other models are
-    -- fine and refusing to start would take them down too.
+    -- model that quietly never chirps while the rest do, the hardest version of
+    -- this bug to notice. Not fatal — refusing to start would take the healthy
+    -- models down too.
     if type(cfg.chirpAssignments) == 'table' then
         for model, entry in pairs(cfg.chirpAssignments) do
             if type(model) ~= 'string' then
@@ -166,9 +141,8 @@ function tchirpConfigOk()
     return ok and #problems == 0
 end
 
---- The boot verdict, read by client/cl_chirp.lua and server/sv_chirp.lua.
----
---- A global boolean rather than each VM calling `tchirpConfigOk()` itself:
---- calling it twice per VM would print the same wall of red twice, and an owner
---- reading a duplicated error reasonably concludes there are two of them.
+--- The boot verdict, read by cl_chirp.lua and sv_chirp.lua. A boolean rather
+--- than each chunk calling `tchirpConfigOk()` itself: calling it twice per VM
+--- prints the same wall of red twice, and an owner reading a duplicated error
+--- reasonably concludes there are two of them.
 tchirpConfigValid = tchirpConfigOk()

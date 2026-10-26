@@ -6,8 +6,7 @@ A park-kill chirp reminder for FiveM emergency vehicles.
 
 When a siren is **park killed** — silenced automatically because the car was put in park while still
 in pursuit mode — tChirp makes that car chirp at a randomised interval until somebody gets back in
-the front seat. It is the reminder tone several real departments run, and nothing else: tChirp never
-turns a siren on or off.
+the front seat. That is all it does; tChirp never turns a siren on or off.
 
 Free, MIT-licensed, and not escrowed. There is no encrypted file in it.
 
@@ -41,10 +40,10 @@ bun run verify       # every gate, controls first
 Every negative control runs before the gate it controls: a gate nobody has watched fail is an
 assertion, not a gate. `prod` is last, because it is the only step that writes anything.
 
-There is no native Lua interpreter on the development machine, and that turns out to be the only
-kind there isn't: `scripts/test-lua.ts` runs each suite under Fengari, a Lua VM that runs under bun.
-The shim in `scripts/run-lua-suite.lua` exists because Fengari's CLI can print an unhandled Lua
-error and still exit **zero**, which would report a suite that blew up on its first line as a pass.
+There is no native Lua interpreter on the development machine, so `scripts/test-lua.ts` runs each
+suite under Fengari, a Lua VM that runs under bun. The shim in `scripts/run-lua-suite.lua` exists
+because Fengari's CLI can print an unhandled Lua error and still exit **zero**, which would report
+a suite that blew up on its first line as a pass.
 
 Suites are discovered off disk. A hardcoded list is the one way a runner fails silently — it keeps
 passing while the suite nobody added to it is the suite that would have caught the regression.
@@ -64,8 +63,8 @@ driving it would mean asserting that a stub schedules correctly rather than that
 `tWeb/src/content/docs/tChirp/` on every push to `main`, wholesale — `rm -rf` then copy — so a page
 edited in tWeb instead of here is a page the next sync silently deletes.
 
-The facts in those pages — config options, exports, commands, provider order — all come out of this
-resource, so `docs:check` runs here and not in tWeb. A doc goes stale because something changed here.
+Config options, exports, commands and provider order all come out of this resource, so `docs:check`
+runs here and not in tWeb. A doc goes stale because something changed here.
 
 ⚠️ **`docs/product.mdx` is the storefront listing, and this repo owns it.** Every push that touches
 `docs/` overwrites tWeb's `src/content/software/tchirp.mdx` wholesale, so edit the listing here. An
@@ -73,5 +72,4 @@ edit made in tWeb is gone at the next push, and whoever made it has no reason to
 
 ## Licence
 
-MIT — see [LICENSE](LICENSE). The licence covers the copy you have; it is not a statement about
-where the source is hosted.
+MIT — see [LICENSE](LICENSE).

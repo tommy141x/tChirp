@@ -1,6 +1,6 @@
 ---
 title: "Configuration"
-description: "Every option in tChirp's config.lua with its type and default: access, which ELS the siren is read from, chirp timing, per-model sound assignments, and the keys renamed in 1.1.0."
+description: "Every option in tChirp's config.lua with its type and default: access, which ELS the siren is read from, chirp timing, and per-model sound assignments."
 order: 2
 group: "tChirp"
 ---
@@ -45,7 +45,7 @@ tChirp asks one question: **was the siren on?** The default, `auto`, covers ever
 | Advanced Lighting System | the four `ALS:*SirenClient` events | No | **Either** siren counts as on |
 | Plain GTA siren | `IsVehicleSirenAudioOn(vehicle)` | No | The fallback when nothing else claims the car |
 
-Only tLS and JLS are asked by export, so they are the only two whose folder name matters at all — and tChirp knows the names both of them ship under, current and previous, and uses whichever is actually running. Fill in `Config.sirenResources` only if you renamed a folder to something of your own. A name there that is not a started resource is ignored rather than trusted, so an old config pinning a name that has since changed upstream still works.
+Only tLS and JLS are asked by export, so they are the only two whose folder name matters — and tChirp knows the names both ship under, current and previous, and uses whichever is running. Fill in `Config.sirenResources` only if you renamed a folder yourself. A name there that is not a started resource is ignored rather than trusted, so an old config pinning a name that has since changed upstream still works.
 
 <Callout type="info" title="The GTA fallback reads siren audio, not the light bar">
 `IsVehicleSirenOn` sounds like the right native and is not: it reports the siren **switch**, and in GTA that switch is the light bar. A unit parked at a scene with its lights on reads as siren-on, so every exit looked like a park kill. The fallback reads `IsVehicleSirenAudioOn` instead, which is false when the lights are up and the audio is silent. Changed in the current 2.0 build; if you pinned `Config.sirenSystem` to work around the old behaviour, unpin it.
@@ -65,9 +65,9 @@ tels → lvc / lvc_fleet → els_fivem → jls → als → native
 
 ### Your ELS kills the siren when you get out
 
-Most do, LVC included — it is the same "park kill" idea, applied to the siren rather than to a reminder. It makes the park kill hard to see, because the evidence deletes itself: LVC zeroes its tone the instant you start climbing out and tells tChirp so about a second before you are actually out of the seat.
+Most do, LVC included, and it makes the park kill hard to see because the evidence deletes itself: LVC zeroes its tone the instant you start climbing out and tells tChirp so about a second before you are out of the seat.
 
-tChirp handles that by not believing a siren-off that arrives while you are getting out. It applies to LVC, LVC Fleet, ELS-FiveM and ALS, and it means **you do not have to turn your ELS's own park kill off** to use tChirp. A siren you switch off yourself while sitting in the car is still a siren off, and that car will not chirp.
+tChirp does not believe a siren-off that arrives while you are getting out. That covers LVC, LVC Fleet, ELS-FiveM and ALS, and it means **you do not have to turn your ELS's own park kill off**. A siren you switch off yourself while sitting in the car is still a siren off, and that car will not chirp.
 
 <Callout type="info" title="On LVC, leave Config.sirenSystem on auto">
 Pinning to `lvc` is not needed and costs you the fallback. `auto` reaches the LVC rung for any car LVC has reported a tone for, and the GTA fallback below it is silent on an LVC car anyway: LVC mutes GTA's own siren audio on the cars it controls, so the fallback cannot false-positive there. In the first 2.0 build, `lvc` could never chirp at all — if that is why you pinned it, unpin it.
@@ -86,7 +86,7 @@ Nothing claims your vehicles, so every park falls through to the native check, w
 | Nothing ever chirps | Your ELS plays its own siren sounds and mutes GTA's, so there is no audio for the fallback to find. This is the common case, and it is not fixable from config |
 | Every park chirps, siren off | Your ELS leaves GTA's siren audio running after its own siren stops |
 
-Pinning `Config.sirenSystem` to the closest match is a workaround, not a fix, and it is the wrong first move: a provider that does not recognise your cars answers "siren off" for all of them, so pinning can turn a resource that chirps too often into one that never chirps. Report your ELS instead and it can be supported directly, as ALS is — what is needed from it is an export or an event that says whether the siren is sounding.
+Pinning `Config.sirenSystem` to the closest match is the wrong first move: a provider that does not recognise your cars answers "siren off" for all of them, so pinning can turn a resource that chirps too often into one that never chirps. Report your ELS instead and it can be supported directly, as ALS is — what is needed from it is an export or an event that says whether the siren is sounding.
 
 ## Chirp timing
 

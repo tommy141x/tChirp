@@ -1,34 +1,21 @@
 /**
- * Parses every Lua file in the resource without executing it: `bun run check:syntax`
+ * Parses every Lua file in the resource without executing it, in about a second:
+ * `bun run check:syntax`
  *
- * ## Why `bun run test` is not this
+ * The fengari suites only load the files they are oracles for, and nothing
+ * parses the manifest-adjacent files at all. A missing `end` in anything
+ * uncovered first surfaces as a resource that REFUSES TO START on a live server.
  *
- * `bun test` never loads a line of Lua, and the fengari suites under
- * scripts/tests only load the files they are oracles for — cl_sirens.lua,
- * cl_chirp.lua, sv_chirp.lua and shared/config-spec.lua. config.lua itself is
- * read by one of them but is not a suite's subject, and nothing at all parses
- * the manifest-adjacent files. A missing `end` in anything uncovered first
- * surfaces as a resource that REFUSES TO START on a live server, which is the
- * worst place to find out and the only place tChirp could have.
+ * Suites are parsed too: the test runner reports a suite that does not parse as a
+ * failure with no message, so this turns that into a named file and a line
+ * number. Files are discovered off disk, because a hardcoded list keeps passing
+ * while the file nobody added to it is the one that is broken.
  *
- * This is the cheapest possible guard against that and it runs in about a second.
- *
- * ## EVERY Lua file, suites included
- *
- * A suite that does not parse is reported by the test runner as a failure with
- * no message — fengari's CLI can print an unhandled error and still exit zero,
- * which is why scripts/run-lua-suite.lua exists — so parsing them here turns
- * that into a named file and a line number.
- *
- * Discovered off disk rather than listed by hand, for the same reason the test
- * runner is: a hardcoded list keeps passing while the file nobody added to it is
- * the one that is broken.
- *
- * ## EXIT CODES, MEASURED DIRECTLY
+ * EXIT CODES
  *
  *   0  every file parses
  *   1  a file failed to parse
- *   2  the gate could not measure — zero files found. ⚠️ NOT a pass. A glob that
+ *   2  the gate could not measure — zero files found. ⚠️ NOT a pass: a glob that
  *      stops matching after a move reports no syntax errors, and "no errors" and
  *      "nothing was read" are otherwise the same green.
  *
@@ -43,15 +30,13 @@ import { resolve } from "node:path";
 const SELF = "check:syntax";
 
 /**
- * The control's fixture directory. Excluded from the real scan because it holds
- * a file that cannot parse BY DESIGN: including it would make this gate
- * permanently red, and the obvious fix — deleting the fixture — is the one that
- * removes the proof that the gate works.
+ * The control's fixture directory, excluded from the real scan because it holds
+ * a file that cannot parse by design.
  *
- * Note that scripts/controls/lua/ is NOT excluded. Those two fixtures are a
- * false assertion and a top-level `error()`; both are valid Lua and must parse,
- * and if one stopped parsing the Lua gate's control would be measuring a syntax
- * error rather than the hazard it names.
+ * ⚠️ scripts/controls/lua/ is NOT excluded. Those two fixtures are a false
+ * assertion and a top-level `error()`; both are valid Lua and must parse, or the
+ * Lua gate's control would be measuring a syntax error rather than the hazard it
+ * names.
  */
 const CONTROL_FIXTURES = "scripts/controls/syntax/";
 
@@ -107,14 +92,13 @@ const rootArg = process.argv.find((a) => a.startsWith("--root="));
 
 // ── Negative control (SYNTAX_CONTROL=1) ─────────────────────────────────────
 //
-// A gate nobody has watched fail is an assertion, not a gate — and this one's
-// failure modes are both invisible from a green run. The glob could stop
-// matching, and the Lua shim's `loadfile` could stop being consulted; either
-// way every subsequent run reports "all files parse".
+// Both of this gate's failure modes are invisible from a green run: the glob
+// could stop matching, or the Lua shim's `loadfile` could stop being consulted.
+// Either way every subsequent run reports "all files parse".
 //
-// THE DECOY CASE IS NOT OPTIONAL. A harness that has stopped reading exit codes
-// reports every case as failing, which is what a correct run of the two red
-// cases looks like. So the real resource root must still come back GREEN.
+// ⚠️ THE DECOY CASE IS NOT OPTIONAL. A harness that has stopped reading exit
+// codes reports every case as failing, which is what a correct run of the two
+// red cases looks like. So the real resource root must still come back GREEN.
 if (process.env.SYNTAX_CONTROL === "1") {
   const fixtures = resolve(ROOT, CONTROL_FIXTURES);
   const failures: string[] = [];

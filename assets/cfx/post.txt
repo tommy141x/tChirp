@@ -35,7 +35,7 @@ The siren is sampled every 500 ms while you are seated and the exit is decided a
 
 Each chirp draws a fresh interval and a fresh duration from the configured ranges, so a row of parked cars does not fall into step.
 
-> **The consequence, stated plainly.** A siren switched off by hand and then left within the same 500 ms window still counts as a park kill. There is no way to tell the two apart after the fact — both look like "the siren was on a moment ago and the player is now outside".
+> **A hand-killed siren can still chirp.** A siren switched off by hand and then left within the same 500 ms window still counts as a park kill, and nothing can tell the two apart afterwards — both look like "the siren was on a moment ago and the player is now outside".
 
 ---
 

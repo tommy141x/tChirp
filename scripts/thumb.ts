@@ -4,15 +4,9 @@
  * The frame, the light rig and the guards are tLib's (`shared/ts/build/hero.ts`); this file is
  * only tChirp's words and its layer placement.
  *
- * NO ART YET. tChirp has no gallery: it is a reminder that fires on leaving a running vehicle,
- * so what it looks like is a prompt in the world, not a panel a headless browser can
- * photograph. Drop captures into `assets/hero/` and name them in LAYERS below. Until then this
- * exits 2 with the list of what it wanted, and writes no placeholder image — a
+ * Art goes in `assets/hero/` and is named in LAYERS below — anything Chromium can decode. With
+ * a file missing this exits 2 with the list of what it wanted and writes no image: a
  * plausible-looking wrong hero is worse than no hero.
- *
- * Anything Chromium can decode works: `.png`, `.webp`, `.jpg`. A capture with a transparent
- * ground beats one with the game behind it — see tUnit's thumb for how those are placed, with
- * no border-radius and no box-shadow.
  *
  *   bun run thumb
  *   bun run thumb -- --format banner
@@ -33,28 +27,22 @@ const subtitle = cliArg("subtitle") ?? "Park-kill siren chirp reminder for FiveM
 const only = cliArg("format");
 
 /**
- * One layer, and it is the whole frame rather than a panel floating in it.
+ * One layer, and it is the whole frame rather than a panel floating in it. Every other
+ * resource composites UI captures onto this dark ground; tChirp has no UI to capture, so the
+ * art is a photograph of a marked unit parked with its lights going, and a photograph has to
+ * BE the background with the type on a scrim over it.
  *
- * Every other resource composites UI captures onto this dark ground. tChirp has no UI to
- * capture — it is a reminder that fires when you walk away from a running car — so the art is
- * a photograph of exactly that: a marked unit parked with its lights still going. A
- * photograph cannot be a floating rectangle with a shadow; it has to BE the background, with
- * the type sitting on a scrim over it.
- *
- * Two things make that work:
- *
- *   `-webkit-mask-image`   fades the photo out where the type goes, so the headline sits on
- *                          the frame's own black instead of on a bright daylight sky. The
- *                          prefix is load-bearing: this renders in the vendored NUI Chromium,
- *                          revision 103, and unprefixed `mask-image` only arrived in 120 —
- *                          unprefixed it is ignored and the photo runs behind the wordmark at
- *                          full strength.
- *   `filter: brightness`   the source is bright midday GTA and this frame is near-black. At
- *                          full strength the photo reads as a different image pasted in.
+ *   `-webkit-mask-image`   fades the photo out where the type goes. ⚠️ The prefix is
+ *                          load-bearing: this renders in the vendored NUI Chromium, revision
+ *                          103, and unprefixed `mask-image` only arrived in 120 — unprefixed
+ *                          it is ignored and the photo runs behind the wordmark at full
+ *                          strength.
+ *   `filter: brightness`   the source is bright midday GTA against a near-black frame. At full
+ *                          strength the photo reads as a different image pasted in.
  *
  * Mask percentages are relative to the IMAGE, which is larger than the frame and offset, so
  * they do not line up with frame percentages. The car sits at roughly 39% across and 26-60%
- * down the source, which is what the offsets below are positioning.
+ * down the source, which is what the offsets below position.
  */
 const LAYERS: { file: string; thumb: string; banner: string }[] = [
   {

@@ -1,10 +1,8 @@
--- Parses the paths handed to it and reports the ones that do not. Driven by
--- scripts/check-syntax.ts, which decides WHICH files; this file only decides
--- what "parses" means, and `loadfile` is the answer — it compiles the chunk and
--- never runs it, so a file with side effects at file scope (every one of
--- tChirp's shared scripts) is safe to point at.
---
--- The same shim tUnit uses, kept identical on purpose.
+-- Parses the paths handed to it and reports the ones that do not.
+-- scripts/check-syntax.ts decides WHICH files; this decides what "parses" means,
+-- and `loadfile` is the answer — it compiles the chunk and never runs it, so a
+-- file with side effects at file scope (every one of tChirp's shared scripts) is
+-- safe to point at. The same shim tUnit uses, kept identical on purpose.
 local paths = { ... }
 local bad = 0
 for _, path in ipairs(paths) do

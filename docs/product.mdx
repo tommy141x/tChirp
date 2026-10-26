@@ -5,61 +5,40 @@ displayName: "Tommy's Chirp"
 tagline: "The park-kill chirp, on whatever ELS you already run"
 category: "fivem"
 tags: ["standalone"]
-# ⚠️ NOT "Escrow", and that is the point of this listing. tChirp's own
-# fxmanifest.lua carries no `escrow_ignore` and says why: "on a resource that is
-# never escrow-packed it is not a smaller carve-out, it is a claim about the
-# build that is not true." The tree is readable and MIT-licensed, same shape as
-# tDB, so it takes tDB's badge rather than the one five other listings carry.
 badge: "Free"
 updatedAt: "2026-10-16"
 popularity: 40
 resourceName: "tChirp"
-# Synced from tChirp's own committed HEAD by `scripts/sync-local-docs.ts`, which
-# reads a sibling checkout and so was never blocked on the Gitea token an earlier
-# note here named. The seven pages are in `src/content/docs/tChirp/`.
+# Synced from tChirp's committed HEAD by `scripts/sync-local-docs.ts`, which
+# reads a sibling checkout. The pages land in `src/content/docs/tChirp/`.
 docsUrl: "/docs/tChirp"
 provider: "tebex"
-# ⚠️ PUBLISHED 2026-10-16 ON THE OWNER'S INSTRUCTION, WITH ONE OF THE THREE
-# PRECONDITIONS THIS NOTE USED TO LIST STILL OPEN — recorded here rather than
-# quietly dropped.
-#
-#  1. Documentation — DONE. Seven pages under `src/content/docs/tChirp/`.
-#  2. A lineup entry in `src/content/site.ts` — DONE, in this change.
-#  3. The Tebex package is STILL PRICED. Measured against the Headless storefront
-#     on 2026-10-16: 7086304 "Tommy's Chirp" returns `total_price: 4.99`. This
-#     page states free, so until the owner zeroes that package the page and the
-#     store it links to disagree. Zeroing it is a Tebex action, not a code one.
+# ⚠️ THE TEBEX PACKAGE IS STILL PRICED. Measured against the Headless storefront
+# on 2026-10-16: 7086304 "Tommy's Chirp" returns `total_price: 4.99`, while this
+# page states free — so the page and the store it links to disagree until the
+# owner zeroes that package, which is a Tebex action and not a code one.
 status: "published"
 media:
   - { type: "youtube", src: "9zvYlkjs2vs", alt: "tChirp in a patrol car" }
   - { type: "image", src: "/assets/tChirp/thumb.jpg", alt: "tChirp" }
-# Explicit, because the gallery now leads with the video and `coverImage()`
-# would otherwise take a YouTube id as the store tile.
+# Explicit, because the gallery leads with the video and `coverImage()` would
+# otherwise take a YouTube id as the store tile.
 coverImage: "/assets/tChirp/thumb.jpg"
 # `/releases/latest/download/` rather than a pinned `/v2.0/` path, so the next
-# release is served without editing this file and this can never point at a
-# superseded build. Same reasoning as tDB's; verified 2026-10-26: 200, redirecting
-# to the asset.
+# release is served without editing this file. Verified 2026-10-26: 200,
+# redirecting to the asset.
 downloadUrl: "https://github.com/tommy141x/tChirp/releases/latest/download/tChirp.zip"
 pricing:
-  # `amount: 0` with NO `packageId`, which is tDB's pairing. tChirp was sold as
-  # Tebex package 7086304 ("Tommy's Chirp") before the overhaul, and as of
-  # 2026-10-26 the source is public on GitHub and the download above comes
-  # straight off the release — routing a free MIT script with no escrow through a
-  # cart bought nothing.
+  # `amount: 0` with NO `packageId`. tChirp was sold as Tebex package 7086304
+  # ("Tommy's Chirp") before the overhaul; the source is public on GitHub and the
+  # download above comes straight off the release, so the cart bought nothing.
   #
-  # ⚠️ 7086304 WENT BACK INTO `HISTORICAL_PACKAGE_NAMES` IN THE SAME CHANGE, and
-  # that is the half that matters. Its line was deleted when this page published,
-  # correctly at the time: a listing carrying the id meant
-  # `resolveTierForStoredProductId` resolved it through this frontmatter, making
-  # the historical row "a dead entry that looks authoritative". Dropping the id
-  # inverts that — nothing claims 7086304 now, so without the historical name the
-  # seven people who own it get an unnamed row.
-  #
-  # ⚠️ There is no `keymasterAsset` and there must not be one. Nothing here is
-  # escrowed, so nothing is granted; `src/lib/portal/services.ts` carries the
-  # reason on that field — a Keymaster line "sends them hunting for something
-  # that was never granted".
+  # ⚠️ 7086304 WENT BACK INTO `HISTORICAL_PACKAGE_NAMES` IN THE SAME CHANGE. Its
+  # line was deleted when this page published, correctly at the time: a listing
+  # carrying the id meant `resolveTierForStoredProductId` resolved it through
+  # this frontmatter, making the historical row a dead entry that looked
+  # authoritative. Dropping the id inverts that — nothing claims 7086304 now, so
+  # without the historical name the seven people who own it get an unnamed row.
   - id: "tchirp"
     kind: "one-time"
     label: "Free — MIT licensed, full source in the download, nothing escrowed."
@@ -94,7 +73,7 @@ It is a reminder, not a siren controller: tChirp never turns a siren on or off. 
 - **Runs with zero edits** — every one of the eight options ships with a default, and a key you delete comes back as the value that shipped
 - **The front seat is the rule, both ways** — leaving a front seat with the siren on arms the chirp; taking a front seat clears it immediately, for everyone
 - **Per-model sounds** — a vehicle chirps the native sound you assign it, or a soundset from a resource you already have. A model you do not list never chirps
-- **Free, and readable** — MIT licensed, every file in the download editable, no encrypted file and no escrow. There is no public repository; the source is the resource you install
+- **Free, and readable** — MIT licensed, every file in the download editable, no encrypted file and no escrow
 
 </Bento>
 
@@ -121,12 +100,12 @@ It is a reminder, not a siren controller: tChirp never turns a siren on or off. 
 
 Three things have to be true at the moment a player leaves a vehicle: they were in a **front seat**, the vehicle's **siren was on** as of the last check before they left, and the vehicle's **model is one you assigned a sound to**. Then the car goes on the chirp list.
 
-The siren is sampled every 500 ms while you are seated and the exit is decided against the **previous** sample, because killing the siren is part of a park kill — by the time the player is out of the seat every provider correctly reports the siren as off, so a check taken at that moment would return false every single time and nothing would ever chirp.
+The siren is sampled every 500 ms while you are seated and the exit is judged against the **previous** sample, because killing the siren is part of a park kill: once the player is out of the seat every provider correctly reports the siren off, so a check taken then returns false every single time and nothing ever chirps.
 
 Each chirp draws a fresh interval and a fresh duration from the configured ranges, so a row of parked cars does not fall into step.
 
-<Callout type="warning" title="The consequence, stated plainly">
-A siren switched off by hand and then left within the same 500 ms window still counts as a park kill. There is no way to tell the two apart after the fact — both look like "the siren was on a moment ago and the player is now outside".
+<Callout type="warning" title="A hand-killed siren can still chirp">
+A siren switched off by hand and then left within the same 500 ms window still counts as a park kill, and nothing can tell the two apart afterwards — both look like "the siren was on a moment ago and the player is now outside".
 </Callout>
 
 <Chapter>

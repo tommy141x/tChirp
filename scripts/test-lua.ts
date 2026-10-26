@@ -1,27 +1,22 @@
 // Runs tChirp's Lua suites: bun run test:lua
 //
-// tChirp is Lua all the way down — there is no NUI and no bundle, so `bun test`
-// reaches none of it. Before this runner existed every change to it was
-// unexecuted: the resource had no tests of any kind, and the only way to find out
-// whether a config edit or a provider change worked was to start a FiveM server.
+// tChirp is Lua all the way down — no NUI, no bundle — so `bun test` reaches
+// none of it. Fengari is a Lua VM that runs under bun, which is how the suites
+// run with no native interpreter on the machine. The same runner tLib, tDetector
+// and tRadar use, kept identical on purpose.
 //
-// Fengari is a Lua VM that runs under bun, so "there is no Lua interpreter on
-// this machine" turns out to be true only of native Lua. The same runner tLib,
-// tDetector and tRadar use, kept identical on purpose.
+// Suites are discovered off disk. A hardcoded list is the one way a runner fails
+// silently: it keeps passing while the suite nobody added to it is the suite that
+// would have caught the regression.
 //
-// Suites are discovered off disk rather than listed here. A hardcoded list is the
-// one way a runner fails silently: it keeps passing while the suite nobody added
-// to it is the suite that would have caught the regression.
-//
-// ── EXIT CODES, MEASURED DIRECTLY ───────────────────────────────────────────
+// EXIT CODES
 //
 //   0  every suite passed
 //   1  a suite failed, discovery found nothing, or a control did not fail
 //
-// `LUA_CONTROL=1` is this gate's negative control. It runs three cases and exits
-// 1 unless each behaves as named; see the block below. ⚠️ Exit codes are read
-// from `Bun.spawnSync().exitCode`, never from `$?` after a pipe — `… | head`
-// hands you `head`'s status.
+// `LUA_CONTROL=1` is this gate's negative control; see the block below.
+// ⚠️ Exit codes are read from `Bun.spawnSync().exitCode`, never from `$?` after a
+// pipe — `… | head` hands you `head`'s status.
 import { resolve } from "node:path";
 
 const root = resolve(import.meta.dir, "..");
@@ -30,11 +25,10 @@ const CONTROL = process.env.LUA_CONTROL === "1";
 /**
  * Run one suite through the shim and hand back its exit code.
  *
- * `--package fengari-node-cli`: the `fengari` package itself ships no
- * executable, and the CLI that does is not a dependency of this resource.
- * Fetched into bunx's own cache rather than installed, so running the suites
- * does not touch the package.json or lockfile of a resource that ships to
- * servers.
+ * `--package fengari-node-cli`: the `fengari` package ships no executable, and
+ * the CLI that does is not a dependency here. Fetched into bunx's cache rather
+ * than installed, so running the suites does not touch the package.json or
+ * lockfile of a resource that ships to servers.
  */
 function runSuite(relativePath: string, quiet = false): number {
   const result = Bun.spawnSync(
@@ -62,13 +56,12 @@ async function discover(dir: string): Promise<string[]> {
 
 // ── Negative control (LUA_CONTROL=1) ────────────────────────────────────────
 //
-// Three cases, and all three are about the HARNESS rather than about tChirp's
-// behaviour. That is the right scope here: all three suites under scripts/tests
-// already assert both directions of every rule they check — every "X was
-// accepted" has a matching "Y was rejected", so a dead validator or a dead
-// siren-cascade trips one half of the pair. What has no floor under it at all is
-// whether a failing suite goes RED, and that is not hypothetical: fengari's CLI
-// prints an unhandled Lua error and still exits ZERO.
+// Three cases, all about the HARNESS rather than tChirp's behaviour. The suites
+// under scripts/tests already assert both directions of every rule — every "X
+// was accepted" has a matching "Y was rejected" — so a dead validator trips one
+// half of a pair. What has no floor under it is whether a failing suite goes RED,
+// and that is not hypothetical: fengari's CLI prints an unhandled Lua error and
+// still exits ZERO.
 if (CONTROL) {
   const failures: string[] = [];
 
