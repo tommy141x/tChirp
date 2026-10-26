@@ -1,11 +1,10 @@
 -- client/cl_sirens.lua — the provider cascade.
 --
--- This is the half of tChirp that decides whether anything happens at all, it
--- talks to six third-party resources none of which are installed here, and it had
--- no test of any kind. The three-state contract (true / false / nil-for-not-mine)
--- is the part worth pinning: it is invisible in the code's shape, every rung
--- depends on it, and getting it wrong produces a resource that either never
--- chirps or chirps on every park.
+-- This is the half of tChirp that decides whether anything happens at all, and it
+-- talks to six third-party resources none of which are installed here. The
+-- three-state contract (true / false / nil-for-not-mine) is invisible in the
+-- code's shape, every rung depends on it, and getting it wrong produces a
+-- resource that either never chirps or chirps on every park.
 
 local ROOT = (arg[0] or ''):match('^(.*)scripts[/\\]tests[/\\]') or './'
 local function path(p) return ROOT .. p end

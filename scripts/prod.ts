@@ -2,9 +2,7 @@
  * `bun run prod` — cut the release zip.
  *
  * There is no bundle to build and nothing to obfuscate, so all of this is the
- * part that actually goes wrong: deciding what ships. tChirp's previous release
- * path was a hand-made `tChirp.zip` committed beside the source, which left the
- * repository holding two versions with nothing to say which one a server had.
+ * part that actually goes wrong: deciding what ships.
  */
 import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
@@ -45,9 +43,6 @@ const INCLUDE = [
   "shared/config-spec.lua",
   "client/cl_sirens.lua",
   "client/cl_chirp.lua",
-  // The /tchirp dialog. It was in the manifest and not in this list, so prod
-  // refused to build from 55bfde8 -- the gate working: a zip without it loads
-  // and then errors on the command.
   "client/cl_menu.lua",
   "server/sv_access.lua",
   "server/sv_chirp.lua",

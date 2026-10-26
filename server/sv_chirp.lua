@@ -87,12 +87,9 @@ local function withinRate(src)
         if bucket.count == RATE_MAX + 1 then
             log(('player %d is sending chirp events faster than %d per %ds; dropping the rest')
                 :format(src, RATE_MAX, RATE_WINDOW_MS / 1000), tlib.logger.WARN)
-            -- Once per window for the same reason as the log line: per dropped
-            -- event would move the flood into the telemetry buffer. No player id
-            -- in the code -- the code is the grouping key, and a per-player code
-            -- makes every flood its own group of one. The rate of this across
-            -- installs is the only way to tell a working floor from one set
-            -- below what ordinary play produces.
+            -- Once per window, same reason as the log line. No player id in the
+            -- code -- the code is the grouping key, and a per-player code makes
+            -- every flood its own group of one.
             tlib.telemetry.warn('chirp.rate.exceeded', 'limit',
                 ('a client exceeded %d chirp events per %ds'):format(RATE_MAX, RATE_WINDOW_MS / 1000))
         end
@@ -212,26 +209,15 @@ CreateThread(function()
 end)
 
 -- Registered `restricted`, so FiveM's own ACE covers it: the console can always
--- run it and a player needs `command.tchirp_diag`. The platform's gate rather
--- than tChirp's own, because the command that answers "why is my install not
--- working" must not need a module a given tLib might not carry.
---
--- The pcall guard, the redactor and the routing are all tlib.diag.command's. It
--- always prints to the server console — that copy survives the caller
--- disconnecting — and to the caller too when there was one. The redactor is
--- derived from the config, so a credential-shaped key added to config.lua later
--- is masked without anyone having to remember this file.
+-- run it and a player needs `command.tchirp_diag`.
 
 tlib.diag.command({
     name = 'tchirp_diag',
     title = 'tChirp diagnostics',
     spec = tchirpConfigSpec,
     report = function(ctx)
-        -- The snapshot, not the live table: `configured` returns what the file
-        -- said at boot. Type-checked rather than called, because a tLib without
-        -- it answers a plain nil — and the live table is a weaker answer to the
-        -- same question but a better outcome than half a report plus a failure
-        -- line in the one command an owner runs when their install is broken.
+        -- The boot snapshot, not the live table. Type-checked rather than
+        -- called: a tLib without `configured` answers a plain nil.
         local configFns = tlib.config
         local configured = (type(configFns.configured) == 'function' and configFns.configured('config.lua'))
             or Config
@@ -241,9 +227,7 @@ tlib.diag.command({
 
         ctx.line('tChirp %s — tLib %s', ctx.meta(GetCurrentResourceName()), ctx.meta('tLib'))
         -- The gate's own description, not a re-reading of Config.access, so the
-        -- diagnostic cannot disagree with the decision. Guarded because an
-        -- install missing sv_access.lua would otherwise fail in the one command
-        -- an owner runs to find out why.
+        -- diagnostic cannot disagree with the decision.
         if type(tchirpAccessDescribe) == 'function' then
             ctx.line('who may chirp: %s', tchirpAccessDescribe())
         end
@@ -258,10 +242,6 @@ tlib.diag.command({
     end,
 })
 
--- Both facts go to the startup banner rather than log lines of their own: the
--- banner is already the one-line summary of a healthy boot, and a second line
--- beside it is what makes consoles scroll past it.
---
 -- Fired from onResourceStart because sv_version.lua -- which subscribes these
 -- events inside tlib.versioncheck -- loads after this file.
 

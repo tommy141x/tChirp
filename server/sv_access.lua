@@ -2,8 +2,8 @@
 -- the gate is open unless an owner narrows it; `tchirp.use` is the ace to grant
 -- under `mode = "ace"`.
 --
--- ⚠️ Only the ADD handler is gated. Collapsing all three client-facing events
--- into one gate reads as tidier and breaks the feature:
+-- ⚠️ Only the ADD handler is gated. Gating the other two client-facing events
+-- breaks the feature:
 --
 --   RemoveChirpVehicle  not even ownership-checked (see sv_chirp.lua) -- a
 --                       forged remove costs one chirp that stops early. Gating

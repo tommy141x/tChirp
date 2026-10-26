@@ -7,9 +7,7 @@
 --
 -- `config.lua` IS THE AUTHORITY. The `default =` fields are only what tlib.config
 -- writes into `Config` for a key the owner DELETED; it never overwrites a value
--- the owner set. scripts/tests/config-spec.lua asserts the two files agree
--- literal for literal, and that the shipped file passes with zero errors and
--- zero warnings.
+-- the owner set.
 --
 -- The two pair rules below are hand-written and FATAL, because tlib.config
 -- validates keys independently and a per-key min/max cannot say "this key must

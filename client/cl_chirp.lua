@@ -262,8 +262,7 @@ tlib.platform.wrapExport('tChirp', 'IsChirping', function(vehicle)
 end)
 
 --- The provider cascade, for any resource that wants the same answer tChirp acts
---- on. "Was this car's siren on, whatever ELS this server runs" is the reusable
---- half of tChirp; the alternative for a consumer is a second copy of it.
+--- on: "was this car's siren on, whatever ELS this server runs".
 tlib.platform.wrapExport('tChirp', 'IsSirenActive', function(vehicle)
     return tchirpIsSirenActive(vehicle)
 end)

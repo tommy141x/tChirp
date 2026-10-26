@@ -1,12 +1,9 @@
 #!/usr/bin/env node
 
-// Validates docs/ before the sync workflow publishes it: `bun run docs:check`
+// Validates docs/ before the sync workflow publishes it. The site's own CI only
+// runs after that push has landed, so a bad page would already be live.
 //
-// ⚠️ `.gitea/workflows/docs.yml` is a PUSH: every commit touching docs/ replaces
-// `src/content/docs/tChirp/` in tWeb wholesale. The site's own CI runs AFTER that
-// push lands, so a broken page is live before anything notices — and tChirp's
-// pages cross-link each other by anchor (12 of them at the last run), exactly
-// what a renamed heading silently breaks.
+// Run: bun run docs:check
 //
 // What it checks:
 //

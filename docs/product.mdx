@@ -9,36 +9,15 @@ badge: "Free"
 updatedAt: "2026-10-16"
 popularity: 40
 resourceName: "tChirp"
-# Synced from tChirp's committed HEAD by `scripts/sync-local-docs.ts`, which
-# reads a sibling checkout. The pages land in `src/content/docs/tChirp/`.
 docsUrl: "/docs/tChirp"
 provider: "tebex"
-# ⚠️ THE TEBEX PACKAGE IS STILL PRICED. Measured against the Headless storefront
-# on 2026-10-16: 7086304 "Tommy's Chirp" returns `total_price: 4.99`, while this
-# page states free — so the page and the store it links to disagree until the
-# owner zeroes that package, which is a Tebex action and not a code one.
 status: "published"
 media:
   - { type: "youtube", src: "9zvYlkjs2vs", alt: "tChirp in a patrol car" }
   - { type: "image", src: "/assets/tChirp/thumb.jpg", alt: "tChirp" }
-# Explicit, because the gallery leads with the video and `coverImage()` would
-# otherwise take a YouTube id as the store tile.
 coverImage: "/assets/tChirp/thumb.jpg"
-# `/releases/latest/download/` rather than a pinned `/v2.0/` path, so the next
-# release is served without editing this file. Verified 2026-10-26: 200,
-# redirecting to the asset.
 downloadUrl: "https://github.com/tommy141x/tChirp/releases/latest/download/tChirp.zip"
 pricing:
-  # `amount: 0` with NO `packageId`. tChirp was sold as Tebex package 7086304
-  # ("Tommy's Chirp") before the overhaul; the source is public on GitHub and the
-  # download above comes straight off the release, so the cart bought nothing.
-  #
-  # ⚠️ 7086304 WENT BACK INTO `HISTORICAL_PACKAGE_NAMES` IN THE SAME CHANGE. Its
-  # line was deleted when this page published, correctly at the time: a listing
-  # carrying the id meant `resolveTierForStoredProductId` resolved it through
-  # this frontmatter, making the historical row a dead entry that looked
-  # authoritative. Dropping the id inverts that — nothing claims 7086304 now, so
-  # without the historical name the seven people who own it get an unnamed row.
   - id: "tchirp"
     kind: "one-time"
     label: "Free — MIT licensed, full source in the download, nothing escrowed."

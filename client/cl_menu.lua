@@ -145,10 +145,6 @@ local function buildFields()
     -- survives the swap because UpdateDialogFields preserves existing values and
     -- the page keys its rows by field id, reusing the textarea node and its
     -- caret rather than rebuilding it.
-    --
-    -- `SubmitFeedback` attributes the message to the calling resource, so the
-    -- wiring is this pair, the tab and the two handler branches -- no net event,
-    -- no server file, nothing in tLib.
     fields[#fields + 1] = {
         id          = 'feedbackMessage',
         type        = 'textarea',

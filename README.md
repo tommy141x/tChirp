@@ -59,16 +59,11 @@ driving it would mean asserting that a stub schedules correctly rather than that
 
 ## Documentation
 
-`docs/content/*.mdx` is the **source**. `.gitea/workflows/docs.yml` mirrors it into
-`tWeb/src/content/docs/tChirp/` on every push to `main`, wholesale — `rm -rf` then copy — so a page
-edited in tWeb instead of here is a page the next sync silently deletes.
+`docs/content/*.mdx` is the source of <https://timmygstudios.com/docs/tChirp>, and
+`docs/product.mdx` is the store listing. Both are owned here.
 
-Config options, exports, commands and provider order all come out of this resource, so `docs:check`
-runs here and not in tWeb. A doc goes stale because something changed here.
-
-⚠️ **`docs/product.mdx` is the storefront listing, and this repo owns it.** Every push that touches
-`docs/` overwrites tWeb's `src/content/software/tchirp.mdx` wholesale, so edit the listing here. An
-edit made in tWeb is gone at the next push, and whoever made it has no reason to look here.
+`bun run docs:check` validates them against the config options, exports, commands and provider order
+this resource actually has, so a doc goes stale because something changed here.
 
 ## Licence
 

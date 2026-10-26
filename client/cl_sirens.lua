@@ -252,8 +252,7 @@ function tchirpIsSirenActive(vehicle)
     -- Returned as given, nil meaning "no". This was `answer == true`, which is
     -- the 1/0 trap in the header: `native` and `askExport` handed back the number
     -- 1 and `1 == true` is false, so a pinned provider saying yes was heard as
-    -- "siren off". Both rungs now normalise at the boundary, which is the only
-    -- place that knows it is holding a foreign value.
+    -- "siren off". Both rungs normalise through `yes()` now.
     local answer = checker(vehicle)
     if answer == nil then return false end
     return answer
