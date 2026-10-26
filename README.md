@@ -1,3 +1,5 @@
+![tChirp](docs/public/banner.jpg)
+
 # tChirp
 
 A park-kill chirp reminder for FiveM emergency vehicles.

@@ -36,23 +36,25 @@ media:
 # Explicit, because the gallery now leads with the video and `coverImage()`
 # would otherwise take a YouTube id as the store tile.
 coverImage: "/assets/tChirp/thumb.jpg"
+# `/releases/latest/download/` rather than a pinned `/v2.0/` path, so the next
+# release is served without editing this file and this can never point at a
+# superseded build. Same reasoning as tDB's; verified 2026-10-26: 200, redirecting
+# to the asset.
+downloadUrl: "https://github.com/tommy141x/tChirp/releases/latest/download/tChirp.zip"
 pricing:
-  # ⚠️ `amount: 0` WITH a `packageId`, which is the opposite pairing to tDB's and
-  # is equally deliberate.
+  # `amount: 0` with NO `packageId`, which is tDB's pairing. tChirp was sold as
+  # Tebex package 7086304 ("Tommy's Chirp") before the overhaul, and as of
+  # 2026-10-26 the source is public on GitHub and the download above comes
+  # straight off the release — routing a free MIT script with no escrow through a
+  # cart bought nothing.
   #
-  # tChirp is free — MIT, no escrow, source in the download — but unlike tDB it
-  # HAS a Tebex package, because it was sold as one before the overhaul. 7086304
-  # is that package, "Tommy's Chirp", read off the live Headless API and already
-  # carried in `src/lib/billing/legacy-product-id.ts` for the seven people who
-  # own it. The package stays listed and the owner zeroes its price; free is a
-  # PRICE and `0` is how it is stated.
-  #
-  # ⚠️ 7086304'S LINE IN `HISTORICAL_PACKAGE_NAMES` WAS DELETED IN THE CHANGE
-  # THAT PUBLISHED THIS PAGE, which is what the note here used to ask for. A
-  # published listing means `resolveTierForStoredProductId` resolves the id
-  # through this frontmatter and `toPortalServices` prefers the tier, so the
-  # historical line became "a dead entry that looks authoritative" — the exact
-  # rule `legacy-product-id.test.ts` pins for tELS's 7442235.
+  # ⚠️ 7086304 WENT BACK INTO `HISTORICAL_PACKAGE_NAMES` IN THE SAME CHANGE, and
+  # that is the half that matters. Its line was deleted when this page published,
+  # correctly at the time: a listing carrying the id meant
+  # `resolveTierForStoredProductId` resolved it through this frontmatter, making
+  # the historical row "a dead entry that looks authoritative". Dropping the id
+  # inverts that — nothing claims 7086304 now, so without the historical name the
+  # seven people who own it get an unnamed row.
   #
   # ⚠️ There is no `keymasterAsset` and there must not be one. Nothing here is
   # escrowed, so nothing is granted; `src/lib/portal/services.ts` carries the
@@ -63,7 +65,6 @@ pricing:
     label: "Free — MIT licensed, full source in the download, nothing escrowed."
     amount: 0
     currency: "usd"
-    packageId: "7086304"
 ---
 
 tChirp reproduces one small piece of real patrol car behaviour. When a siren is **park killed** — silenced automatically because the car was put in park while still in pursuit mode — tChirp chirps that car at a randomised interval until somebody gets back in the front seat.
@@ -88,7 +89,7 @@ It is a reminder, not a siren controller: tChirp never turns a siren on or off. 
 
 <Bento>
 
-- **Reads the ELS you already have** — tELS, Luxart Vehicle Control, LVC Fleet, ELS-FiveM, JLS and Advanced Lighting System, cascaded in that order, or the plain GTA siren if you run none of them
+- **Reads the ELS you already have** — tLS, Luxart Vehicle Control, LVC Fleet, ELS-FiveM, JLS and Advanced Lighting System, cascaded in that order, or the plain GTA siren if you run none of them
 - **Nothing to operate** — no keybind, no menu, no command an officer uses. The behaviour is the product
 - **Runs with zero edits** — every one of the eight options ships with a default, and a key you delete comes back as the value that shipped
 - **The front seat is the rule, both ways** — leaving a front seat with the siren on arms the chirp; taking a front seat clears it immediately, for everyone
@@ -152,9 +153,9 @@ A siren switched off by hand and then left within the same 500 ms window still c
         ["Dependencies", "tLib v1.0+ (free). Nothing else"],
         [
           "Siren systems read",
-          "tELS, Luxart Vehicle Control, LVC Fleet, ELS-FiveM, JLS, Advanced Lighting System, plain GTA siren",
+          "tLS, Luxart Vehicle Control, LVC Fleet, ELS-FiveM, JLS, Advanced Lighting System, plain GTA siren",
         ],
-        ["Configurable provider names", "tELS and JLS only — the two that are read through an export"],
+        ["Configurable provider names", "tLS and JLS only — the two that are read through an export"],
         ["Database", "None"],
         ["Runtime", "lua54"],
       ],
@@ -191,9 +192,9 @@ Nothing else is configured. `Config.sirenSystem` defaults to `auto`, which casca
     Yes. MIT licensed, the full source in the download, nothing escrowed and nothing granted in your
     Keymaster, because there is no asset to grant.
   </FaqItem>
-  <FaqItem q="Do I have to run tELS to use it?">
+  <FaqItem q="Do I have to run tLS to use it?">
     No. It reads six siren systems and falls back to the plain GTA siren, so it works on a server with
-    no ELS at all. Only tELS and JLS are read through an export and therefore need a folder name in the
+    no ELS at all. Only tLS and JLS are read through an export and therefore need a folder name in the
     config; the other four are detected from events, which arrive under their own names however the
     sending resource is renamed.
   </FaqItem>
