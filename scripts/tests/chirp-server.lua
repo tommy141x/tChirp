@@ -14,7 +14,7 @@ local function path(p) return ROOT .. p end
 -- ── Host stubs ─────────────────────────────────────────────────────────────
 
 function GetCurrentResourceName() return 'tChirp' end
-function GetResourceMetadata() return '1.1.0' end
+function GetResourceMetadata() return '2.0.0' end
 
 local netHandlers = {}
 function RegisterNetEvent(name, fn) netHandlers[name] = fn end
@@ -90,16 +90,8 @@ tlib.diag = dofile(path('../tLib/shared/imports/diag/shared.lua'))
 -- `tlib.telemetry.warn`, and both are paths this suite deliberately walks. A
 -- stub would let a change to either call site pass; without it the suite dies
 -- with "attempt to index a nil value (field 'telemetry')" from inside the
--- handler under test.
---
--- `GetCurrentResourceName` first: `Telemetry.warn` prints its local line
--- through that native UNGUARDED, so a harness that omits it gets "attempt to
--- call a nil value" the first time a warning carries a message. It is a real
--- global in every runtime this ships to; only fengari lacks it. Everything else
--- at the module's file scope is already guarded by `type(x) == 'function'`.
-if GetCurrentResourceName == nil then
-    function GetCurrentResourceName() return 'tChirp' end
-end
+-- handler under test. Telemetry.warn calls GetCurrentResourceName unguarded,
+-- which the stub at the top of this file covers.
 tlib.telemetry = dofile(path('../tLib/shared/imports/telemetry/shared.lua'))
 dofile(path('config.lua'))
 dofile(path('shared/config-spec.lua'))
