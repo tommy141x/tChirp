@@ -23,12 +23,9 @@ const root = resolve(import.meta.dir, "..");
 const CONTROL = process.env.LUA_CONTROL === "1";
 
 /**
- * Run one suite through the shim and hand back its exit code.
- *
- * `--package fengari-node-cli`: the `fengari` package ships no executable, and
- * the CLI that does is not a dependency here. Fetched into bunx's cache rather
- * than installed, so running the suites does not touch the package.json or
- * lockfile of a resource that ships to servers.
+ * `--package fengari-node-cli`: the `fengari` package ships no executable. Fetched
+ * into bunx's cache rather than installed, so running the suites does not touch
+ * the package.json or lockfile of a resource that ships to servers.
  */
 function runSuite(relativePath: string, quiet = false): number {
   const result = Bun.spawnSync(
@@ -56,12 +53,9 @@ async function discover(dir: string): Promise<string[]> {
 
 // ── Negative control (LUA_CONTROL=1) ────────────────────────────────────────
 //
-// Three cases, all about the HARNESS rather than tChirp's behaviour. The suites
-// under scripts/tests already assert both directions of every rule — every "X
-// was accepted" has a matching "Y was rejected" — so a dead validator trips one
-// half of a pair. What has no floor under it is whether a failing suite goes RED,
-// and that is not hypothetical: fengari's CLI prints an unhandled Lua error and
-// still exits ZERO.
+// Three cases, all about the HARNESS rather than tChirp's behaviour. What has no
+// floor under it is whether a failing suite goes RED, and that is not
+// hypothetical: fengari's CLI prints an unhandled Lua error and still exits ZERO.
 if (CONTROL) {
   const failures: string[] = [];
 

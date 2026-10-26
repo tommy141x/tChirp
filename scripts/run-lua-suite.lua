@@ -6,8 +6,7 @@
 -- as a pass. Every suite exception becomes a non-zero exit here instead.
 --
 -- The same shim tLib and tDetector use. Each suite loads the files it is an
--- oracle for, with its own host stubs, because which files a suite needs — and
--- what has to be defined before they load — is part of what it asserts.
+-- oracle for, with its own host stubs.
 local ok, err = xpcall(function()
     dofile(assert(arg[1], 'Suite path required'))
 end, debug.traceback)

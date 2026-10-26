@@ -17,8 +17,7 @@ local occupancy = tlib.occupancy
 --- by as much.
 local POLL_MS = 500
 
--- Hashed once at load so the per-park check is one table index rather than a
--- string compare per configured model.
+-- Hashed once at load, so the per-park check is one table index.
 local chirpHashes = {}
 for model in pairs(Config.chirpAssignments) do
     chirpHashes[GetHashKey(model)] = model
@@ -148,9 +147,8 @@ end)
 -- PlaySoundFromEntity is local: the sound is positional in each listener's own
 -- world, and a server that emitted it once would emit it for nobody.
 
---- A car with somebody in a front seat is not reminding anybody of anything, so
---- it stays quiet even if the list has not caught up — which it will not have,
---- for the tick between someone sitting down and the broadcast arriving.
+--- Checked locally as well as server-side, because the list has not caught up for
+--- the tick between someone sitting down and the broadcast arriving.
 local function frontSeatsEmpty(vehicle)
     return GetPedInVehicleSeat(vehicle, occupancy.SEAT_DRIVER) == 0
         and GetPedInVehicleSeat(vehicle, occupancy.SEAT_PASSENGER) == 0
@@ -197,7 +195,6 @@ end)
 -- Readers for the /tchirp dialog. cl_menu.lua answers off the same tables the
 -- chirp loop runs on rather than a second copy.
 
---- The chirp assignment for a vehicle, or nil if its model is not configured.
 function tchirpAssignmentFor(vehicle)
     return chirpConfigFor(vehicle)
 end

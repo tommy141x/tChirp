@@ -78,8 +78,7 @@ tchirpConfigSpec = {
 
 --- Rules tlib.config cannot express, plus the shape checks for the tables it is
 --- only told the type of. Separate from the spec so `tchirp_diag` can print them
---- with the rest.
---- @return string[] problems  empty when the file is coherent
+--- with the rest. The returned list is empty when the file is coherent.
 local function crossChecks(cfg)
     local problems = {}
     local function bad(message)
@@ -100,9 +99,8 @@ local function crossChecks(cfg)
     pair('chirpMinDurationMs', 'chirpMaxDurationMs', 'chirp length')
 
     -- Assignment shapes. Reported rather than skipped: a malformed entry is one
-    -- model that quietly never chirps while the rest do, the hardest version of
-    -- this bug to notice. Not fatal — refusing to start would take the healthy
-    -- models down too.
+    -- model that quietly never chirps while the rest do. Not fatal — refusing to
+    -- start would take the healthy models down too.
     if type(cfg.chirpAssignments) == 'table' then
         for model, entry in pairs(cfg.chirpAssignments) do
             if type(model) ~= 'string' then
@@ -124,8 +122,7 @@ local function crossChecks(cfg)
     return problems
 end
 
---- Validate `Config` and print everything. Re-runnable: `tchirp_diag` calls it.
---- @return boolean ok  false when the resource must not run
+--- Re-runnable: `tchirp_diag` calls it. Returns false when the resource must not run.
 function tchirpConfigOk()
     local ok = tlib.config.check(Config, tchirpConfigSpec)
 
@@ -139,8 +136,7 @@ function tchirpConfigOk()
     return ok and #problems == 0
 end
 
---- The boot verdict, read by cl_chirp.lua and sv_chirp.lua. A boolean rather
---- than each chunk calling `tchirpConfigOk()` itself: calling it twice per VM
---- prints the same wall of red twice, and an owner reading a duplicated error
---- reasonably concludes there are two of them.
+--- The boot verdict, read by cl_chirp.lua and sv_chirp.lua. A boolean rather than
+--- a per-chunk call: the same wall of red would print twice per VM, and a
+--- duplicated error reasonably reads as two errors.
 tchirpConfigValid = tchirpConfigOk()

@@ -1,9 +1,7 @@
 -- shared/config-spec.lua against the config file it validates.
 --
--- Loads tLib's REAL config module out of the sibling directory rather than
--- stubbing it. A stubbed validator would assert that this suite agrees with
--- itself; what has to hold is that the file we ship passes the spec tLib
--- actually runs.
+-- Loads tLib's REAL config module out of the sibling directory: a stubbed
+-- validator would only assert that this suite agrees with itself.
 
 local ROOT = (arg[0] or ''):match('^(.*)scripts[/\\]tests[/\\]') or './'
 local function path(p) return ROOT .. p end
@@ -35,9 +33,8 @@ end
 
 -- ── The file we ship passes its own spec ────────────────────────────────────
 --
--- The one assertion that has to hold forever. A spec that rejects the shipped
--- config would greet every new install with a wall of red on a file the owner has
--- not touched, which is worse than no validation at all.
+-- A spec that rejects the shipped config greets every new install with a wall of
+-- red on a file the owner has not touched.
 
 if not tchirpConfigValid then
     fail('config.lua does not pass shared/config-spec.lua')
@@ -55,7 +52,7 @@ if #report.warnings ~= 0 then
 end
 
 -- ── Nothing is required ─────────────────────────────────────────────────────
--- The house north star: the product works with zero edits.
+-- The product has to work with zero edits.
 
 local empty = {}
 local emptyReport = tlib.config.validate(empty, tchirpConfigSpec)
@@ -147,12 +144,10 @@ end
 
 -- ── The 1.0.0 key names are NAMED at boot, not quietly dropped ──────────────
 --
--- Nothing copies ChirpMinInterval onto chirpMinIntervalMs any more, and
--- nothing should. config.lua is not escrow-packed and never was,
--- so a server that kept ITS copy across the update is still on the old
--- spellings and will fall back to the shipped timings. The ONLY thing that
--- turns that from a silent reset into a fixable boot warning is the unknown-key
--- check firing on every one of them, which is what this now asserts.
+-- Nothing copies ChirpMinInterval onto chirpMinIntervalMs, so a server that kept
+-- ITS config.lua across the update is on the old spellings and falls back to the
+-- shipped timings. The unknown-key check firing on every one of them is what
+-- turns that silent reset into a fixable boot warning.
 
 local old = {
     ChirpMinInterval = 1000,

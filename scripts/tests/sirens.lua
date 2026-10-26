@@ -1,10 +1,9 @@
 -- client/cl_sirens.lua — the provider cascade.
 --
--- This is the half of tChirp that decides whether anything happens at all, and it
--- talks to six third-party resources none of which are installed here. The
--- three-state contract (true / false / nil-for-not-mine) is invisible in the
--- code's shape, every rung depends on it, and getting it wrong produces a
--- resource that either never chirps or chirps on every park.
+-- Six third-party resources, none of them installed here. The three-state
+-- contract (true / false / nil-for-not-mine) is invisible in the code's shape,
+-- every rung depends on it, and getting it wrong produces a resource that either
+-- never chirps or chirps on every park.
 
 local ROOT = (arg[0] or ''):match('^(.*)scripts[/\\]tests[/\\]') or './'
 local function path(p) return ROOT .. p end
@@ -61,8 +60,7 @@ tlib = {
 }
 
 -- `exports[name]:IsSirenActive(v)`. A resource that is not installed must THROW,
--- exactly as FiveM does — the pcall in askExport is there for that case, and a
--- stub returning nil instead would let a real regression pass.
+-- exactly as FiveM does — the pcall in askExport is there for that case.
 local installed = {}
 exports = setmetatable({}, {
     __index = function(_, name)
@@ -279,12 +277,9 @@ myVehicle = VEH
 fire('ALS:PlaySecondarySirenClient', VEH)
 check(tchirpIsSirenActive(VEH) == true, 'an ALS secondary siren was not read')
 
--- The same mid-exit rule as LVC, applied to the other two event providers. Not
--- because either is known to have a park kill of its own — LVC's is the one read
--- in its source — but because the rule is about the moment, not the provider: a
--- siren going off while the player is climbing out is part of the park kill
--- whoever turns it off, and a provider that gains a park kill later must not
--- quietly stop chirping the way LVC did.
+-- The same mid-exit rule applied to the other two event providers. Neither is
+-- known to have a park kill of its own — LVC's is the one read in its source —
+-- but a provider that gains one later must not quietly stop chirping as LVC did.
 reset()
 myVehicle = VEH
 fire('ALS:PlayPrimarySirenClient', VEH)
@@ -351,11 +346,8 @@ check(#logged == 1 and logged[1][2] == tlib.logger.ERROR,
 
 -- ── tchirpResolvedProvider: WHICH provider owns the vehicle ───────────────
 --
--- The `/tchirp` dialog's explanation rests entirely on this. "The siren is off"
--- and "LVC says the siren is off, so the native check never ran" are different
--- facts, and the second is the one that explains a car that does not chirp — so
--- the NAME has to be the one the cascade actually stopped at, not the first
--- plausible candidate.
+-- The `/tchirp` dialog's explanation rests on this: the NAME has to be the rung
+-- the cascade actually stopped at, not the first plausible candidate.
 
 reset()
 Config.sirenSystem = 'auto'

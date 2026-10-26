@@ -2,9 +2,9 @@
  * Parses every Lua file in the resource without executing it, in about a second:
  * `bun run check:syntax`
  *
- * The fengari suites only load the files they are oracles for, and nothing
- * parses the manifest-adjacent files at all. A missing `end` in anything
- * uncovered first surfaces as a resource that REFUSES TO START on a live server.
+ * The fengari suites only load the files they are oracles for, so without this a
+ * missing `end` anywhere else first surfaces as a resource that refuses to start
+ * on a live server.
  *
  * Suites are parsed too: the test runner reports a suite that does not parse as a
  * failure with no message, so this turns that into a named file and a line
@@ -30,8 +30,8 @@ import { resolve } from "node:path";
 const SELF = "check:syntax";
 
 /**
- * The control's fixture directory, excluded from the real scan because it holds
- * a file that cannot parse by design.
+ * Excluded from the real scan because it holds a file that cannot parse by
+ * design — including it would make this gate permanently red.
  *
  * ⚠️ scripts/controls/lua/ is NOT excluded. Those two fixtures are a false
  * assertion and a top-level `error()`; both are valid Lua and must parse, or the

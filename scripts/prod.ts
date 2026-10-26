@@ -1,9 +1,4 @@
-/**
- * `bun run prod` — cut the release zip.
- *
- * There is no bundle to build and nothing to obfuscate, so all of this is the
- * part that actually goes wrong: deciding what ships.
- */
+/** `bun run prod` — cut the release zip. */
 import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import AdmZip from "adm-zip";
@@ -21,15 +16,13 @@ import {
 const ROOT = resolve(join(import.meta.dir, ".."));
 const DIST = join(ROOT, ".build", "dist");
 
-// An allowlist, not a denylist: a denylist ships anything nobody thought to
-// name. A new file is ABSENT from the release until someone adds it here, and
-// both directions are checked below, so an unlisted runtime file fails the build
-// loudly instead of shipping broken.
+// An allowlist, so a new file is ABSENT from the release until someone adds it
+// here; both directions are checked below, so an unlisted runtime file fails the
+// build loudly instead of shipping broken.
 //
-// Named file by file rather than as `client`, `server`, `shared`. Those three
-// directories hold exactly the manifest's scripts today, so a tree-level entry
-// would be identical — right up to the first helper, fixture or note filed next
-// to them, which would then ship silently.
+// Named file by file rather than as `client`, `server`, `shared`: a tree-level
+// entry is identical today, right up to the first helper, fixture or note filed
+// next to them, which would then ship silently.
 //
 // ⚠️ `config.local.lua` must never be staged: it is the developer's real
 // credentials, gitignored, overlaid onto Config at server start by tlib.secrets.
@@ -37,7 +30,6 @@ const DIST = join(ROOT, ".build", "dist");
 // safe to unzip over a live install — createZip's sanitizer re-checks that below.
 const INCLUDE = [
   "fxmanifest.lua",
-  // The only install instructions a zip carries; the full docs are on the site.
   "README.md",
   "config.lua",
   "shared/config-spec.lua",

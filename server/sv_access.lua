@@ -19,20 +19,16 @@ local gate = tlib.access.gate(Config.access, {
     label = 'the chirp list',
 })
 
---- @param playerId number
---- @return boolean
 function tchirpMayChirp(playerId)
     return gate:allowed(playerId)
 end
 
 --- Structured gate state. Assert on this, not on the prose of describe().
---- @return table
 function tchirpAccessReport()
     return gate:report()
 end
 
 --- One line of prose for `tchirp_diag`, written by the gate itself.
---- @return string
 function tchirpAccessDescribe()
     return gate:describe()
 end

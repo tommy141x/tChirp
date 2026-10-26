@@ -63,7 +63,7 @@ driving it would mean asserting that a stub schedules correctly rather than that
 `docs/product.mdx` is the store listing. Both are owned here.
 
 `bun run docs:check` validates them against the config options, exports, commands and provider order
-this resource actually has, so a doc goes stale because something changed here.
+this resource actually has, so a doc cannot go quietly stale when something changes here.
 
 ## Licence
 

@@ -27,10 +27,9 @@ const subtitle = cliArg("subtitle") ?? "Park-kill siren chirp reminder for FiveM
 const only = cliArg("format");
 
 /**
- * One layer, and it is the whole frame rather than a panel floating in it. Every other
- * resource composites UI captures onto this dark ground; tChirp has no UI to capture, so the
- * art is a photograph of a marked unit parked with its lights going, and a photograph has to
- * BE the background with the type on a scrim over it.
+ * One layer, and it is the whole frame rather than a panel floating in it: tChirp has no UI
+ * to capture, so the art is a photograph of a marked unit parked with its lights going and
+ * the type sits on a scrim over it.
  *
  *   `-webkit-mask-image`   fades the photo out where the type goes. ⚠️ The prefix is
  *                          load-bearing: this renders in the vendored NUI Chromium, revision

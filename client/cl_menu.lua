@@ -1,12 +1,10 @@
 -- `/tchirp` — the status dialog.
 --
--- A readout, not a settings panel: every setting is server-side `config.lua` and
--- there is no per-player preference, because a chirp is a reminder to the person
--- who left the siren on and letting them mute it removes the only thing it does.
--- So it answers questions — will THIS car chirp, is anything chirping, and which
--- of the six providers answered for this vehicle. That last one is the support
--- story: `tchirp_diag` prints it to the server console, where the confused
--- player cannot see it.
+-- A readout, not a settings panel: there is no per-player preference, because
+-- letting the person who left the siren on mute the reminder removes the only
+-- thing it does. It answers which of the six providers answered for this vehicle,
+-- which otherwise only `tchirp_diag` says — in the server console, where the
+-- confused player cannot see it.
 --
 -- The one action is Silence, which sends the same `tchirp:RemoveChirpVehicle`
 -- event taking a front seat sends (not ownership-checked; see sv_chirp.lua).
@@ -135,9 +133,8 @@ local function buildFields()
             :format(Config.chirpMinIntervalMs, Config.chirpMaxIntervalMs,
                     Config.chirpMinDurationMs, Config.chirpMaxDurationMs) }
 
-    -- Everything above is Status. tLib puts an untagged field on the first tab,
-    -- so only the feedback pair below has to name its tab -- as would any row
-    -- added up here in future.
+    -- tLib puts an untagged field on the first tab, so only the feedback pair
+    -- below has to name its tab -- as would any row added up here in future.
 
     -- Built in buildFields, not at the ShowDialog call: `refresh()` replaces the
     -- whole field list once a second through UpdateDialogFields, so a field
@@ -168,9 +165,9 @@ local function buildFields()
     return fields
 end
 
--- Seven of the ten rows derive from world state that moves continuously -- the
--- siren, the chirping count, and a distance that is wrong as soon as the player
--- takes a step -- so they are re-read on a tick.
+-- Most rows derive from world state that moves continuously -- the siren, the
+-- chirping count, and a distance that is wrong as soon as the player takes a
+-- step -- so they are re-read on a tick.
 
 local dialogOpen = false
 local refreshGeneration = 0

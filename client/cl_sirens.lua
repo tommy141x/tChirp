@@ -1,7 +1,5 @@
 -- tChirp — siren provider cascade (client)
 --
--- One question: was the siren on? Everything else hangs off the answer.
---
 -- tLS and JLS are asked by EXPORT, which needs the resource's name — so they are
 -- the only two in `Config.sirenResources`, and that key is an override for a
 -- folder you renamed yourself, not the list of names actually tried (see
@@ -26,14 +24,12 @@
 
 local log = tlib.logger.create('tChirp')
 
---- A yes in either shape a provider can return — see the header. Native returns
---- and third-party exports are equally free to answer 1.
+--- A yes in either shape — a native return and a third-party export are equally
+--- free to answer 1.
 local function yes(value)
     return value == true or (type(value) == 'number' and value ~= 0)
 end
 
---- Is the player part-way out of the seat right now?
----
 --- Task 2 is CODE_TASK_EXIT_VEHICLE, active from the start of the exit until the
 --- ped detaches — about a second of animation. The same signal LVC watches to
 --- fire `lvc:onVehicleExit` (UTIL/cl_lvc.lua), so tChirp's idea of "getting out"
@@ -58,10 +54,9 @@ end
 -- `sirenSystem = 'lvc'` bug report of 2026-10-26. No shorter poll fixes it; the
 -- zero always lands first.
 --
--- Not the 500 ms snapshot window documented below — that is a sampling artefact
--- and still applies to a siren switched off by hand while seated. This is a
--- provider zeroing its own state because the player is getting out, which is the
--- thing being detected.
+-- Not the 500 ms snapshot window in cl_chirp.lua: that is a sampling artefact and
+-- still applies to a siren switched off by hand while seated. This is a provider
+-- zeroing its own state because the player is getting out.
 
 local lvcTone, lvcVehicle = 0, 0
 local alsActive, alsVehicle = false, 0
@@ -211,8 +206,8 @@ end
 -- DisableVehicleImpactExplosionActivation) because it plays its own tones, so
 -- the real answer can only come from the LVC rung above.
 --
--- The trade: audio is a stricter test than the switch, so this rung can only
--- chirp LESS than before. A missed reminder is the right direction to fail.
+-- Audio is a stricter test than the switch, so this rung can only chirp LESS than
+-- it did before.
 checkers.native = function(vehicle) return yes(IsVehicleSirenAudioOn(vehicle)) end
 
 checkers.lvc_fleet = checkers.lvc
@@ -223,8 +218,6 @@ checkers.lvc_fleet = checkers.lvc
 local AUTO_ORDER = { 'tels', 'lvc', 'els_fivem', 'jls', 'als', 'native' }
 
 --- Was the siren on for this vehicle?
---- @param vehicle number  entity handle
---- @return boolean
 function tchirpIsSirenActive(vehicle)
     if not vehicle or vehicle == 0 then return false end
 
@@ -258,9 +251,8 @@ function tchirpIsSirenActive(vehicle)
     return answer
 end
 
---- What every provider says right now, for `tchirp_diag`. The raw three-state
---- answer, nil included: "not my vehicle" is what an owner debugging a mixed
---- fleet needs to see.
+--- What every provider says right now, for `tchirp_diag`. nil included: "not my
+--- vehicle" is what an owner debugging a mixed fleet needs to see.
 function tchirpProviderAnswers(vehicle)
     local out = {}
     for _, name in ipairs(AUTO_ORDER) do
@@ -269,12 +261,10 @@ function tchirpProviderAnswers(vehicle)
     return out
 end
 
---- WHICH provider owns this vehicle, and what it says. For the `/tchirp` dialog.
----
---- The first provider to answer anything but nil owns the car. The name matters
---- as much as the answer: "the siren is off" and "LVC says the siren is off, so
---- the native check never ran" are different facts, and the second is the one
---- that explains a car that does not chirp.
+--- WHICH provider owns this vehicle, and what it says. For the `/tchirp` dialog:
+--- "the siren is off" and "LVC says the siren is off, so the native check never
+--- ran" are different facts, and the second is the one that explains a car that
+--- does not chirp.
 ---
 --- @return name|nil, answer|nil   nil, nil when no provider claims the vehicle.
 function tchirpResolvedProvider(vehicle)

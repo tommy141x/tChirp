@@ -280,8 +280,7 @@ check(listed(300), 'one client hitting the rate limit blocked a different client
 -- the stub schedules correctly, not that the sweep is right. Said plainly rather
 -- than faked: the sweep is untested.
 
--- An unconfigured model can never get on the list in the first place, which is the
--- cheapest of all the checks and the one that makes the others rarely needed.
+-- An unconfigured model can never get on the list in the first place.
 newWindow()
 world[500] = SULTAN
 add(1, 500, { sound = CONFIGURED.sound, ref = CONFIGURED.ref })

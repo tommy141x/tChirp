@@ -1,7 +1,7 @@
 node_modules/
 *.log
 
-# Scratch. Same name in tRadar, tRadio, tDetector, tELS and tLib.
+# Scratch.
 .tmp/
 
 # Release archives. tChirp 1.0.0 shipped a committed `tChirp.zip` that was a
