@@ -1,5 +1,5 @@
 --[[----------------------------------------------------------------------
-    TIMMYG Studios — tChirp 2.0.0
+    TIMMYG Studios — tChirp 2.0.1
     config.lua — the file you edit. It is the only one.
 
     NOTHING HERE IS REQUIRED. tChirp runs with zero edits.
@@ -66,28 +66,38 @@ Config.access = {
 --  Which siren provider tChirp asks whether the siren was on when you left
 --  the vehicle — the "park kill" trigger.
 --
---  'auto'      cascade: tELS → LVC / LVC Fleet → ELS-FiveM → JLS → ALS → native
---  'tels'      tELS only
+--  'auto'      cascade: tLS → LVC / LVC Fleet → ELS-FiveM → JLS → ALS → native
+--  'tels'      tLS (formerly tELS) only
 --  'lvc'       Luxart Vehicle Control only
 --  'lvc_fleet' LVC Fleet only
 --  'els_fivem' ELS-FiveM only
 --  'jls'       JLS only
 --  'als'       Advanced Lighting System only
 --  'native'    native GTA siren only
+--
+--  LEAVE THIS ON 'auto' UNLESS YOU HAVE A REASON. `auto` asks each provider in
+--  turn and the first one that recognises the vehicle answers, so it is correct
+--  on a mixed fleet and correct on a single-ELS server alike. Pinning removes
+--  the other providers AND the fallback: a car the pinned provider does not
+--  recognise is treated as siren-off and never chirps.
 
 Config.sirenSystem = 'auto'
 
---  Change these ONLY if your tELS or JLS folder has been renamed. They are
---  queried with `exports[<name>]:IsSirenActive(vehicle)`, so the name has to
---  match the folder.
+--  AN OVERRIDE, NOT A REQUIREMENT. Leave it empty.
 --
---  LVC, LVC Fleet, ALS and ELS-FiveM are not listed here and do not need to
---  be: they are detected by event (`lvc:UpdateThirdParty`, the four
---  `ALS:*SirenClient` events, `els:setSirenState_c`), and an event keeps its
---  own name however the sending resource is renamed.
+--  tLS and JLS are the only two providers asked by export, so they are the only
+--  two whose folder name matters -- and tChirp already knows the names both of
+--  them ship under, current and previous, and uses whichever is running. Fill a
+--  key in ONLY if you renamed the folder to something of your own; a name here
+--  that is not a started resource is ignored rather than trusted.
+--
+--  LVC, LVC Fleet, ALS and ELS-FiveM are not listed here and cannot be: they
+--  are detected by event (`lvc:UpdateThirdParty`, the four `ALS:*SirenClient`
+--  events, `els:setSirenState_c`), and an event keeps its own name however the
+--  sending resource is renamed.
 Config.sirenResources = {
-    tels = 'tELS',
-    jls  = 'Jace3483_JLS',
+    -- tels = 'MyRenamedTLS',
+    -- jls  = 'MyRenamedJLS',
 }
 
 -- =========================================================================

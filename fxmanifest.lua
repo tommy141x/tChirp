@@ -8,7 +8,7 @@ author 'Tommy Johnston'
 -- studio banner only when the CALLING resource's manifest carries an author
 -- equal to 'TIMMYG Studios'. Folder name and opts.name do not count.
 author 'TIMMYG Studios'
-version '2.0.0'
+version '2.0.1'
 
 lua54 'yes'
 

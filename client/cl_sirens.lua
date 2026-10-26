@@ -7,9 +7,11 @@
 --
 --  ── Two kinds of provider, and why the config only names two resources ─────
 --
---  EXPORT-based (tELS, JLS) are asked directly, at the moment the answer is
+--  EXPORT-based (tLS, JLS) are asked directly, at the moment the answer is
 --  needed. Calling an export needs the resource's name, which is why those two
---  — and only those two — appear in `Config.sirenResources`.
+--  — and only those two — appear in `Config.sirenResources`, and why that key is
+--  an OVERRIDE for a renamed folder rather than the list of names actually tried
+--  (see RESOURCE_CANDIDATES).
 --
 --  EVENT-based (LVC, LVC Fleet, ALS, ELS-FiveM) push their state at us and we
 --  cache it. A FiveM event arrives under its own name regardless of what the
@@ -26,7 +28,7 @@
 --
 --  A checker returns true, false, or nil for "this is not my vehicle". Only nil
 --  falls through to the next provider, which is what makes a mixed fleet work:
---  one server can run tELS cars and LVC cars, and each is answered by the
+--  one server can run tLS cars and LVC cars, and each is answered by the
 --  provider that owns it rather than by whichever one is checked first.
 --
 --  The distinction matters most in the other direction. ALS never calls
@@ -34,13 +36,57 @@
 --  fallback reads TRUE with the siren audibly off. Returning `false` — not nil —
 --  for a vehicle ALS has claimed is what stops the cascade before it reaches the
 --  native check and false-positives every park.
+--
+--  ── An answer is never trusted raw ─────────────────────────────────────────
+--
+--  FiveM's Lua runtime hands a BOOL native back as the NUMBER 1 or 0, so both
+--  `answer == true` and `not not answer` are wrong: the first rejects every yes,
+--  the second accepts every no because 0 is truthy in Lua. Everything that
+--  reaches a caller from here goes through `yes()`.
 -- =========================================================================
 
 local log = tlib.logger.create('tChirp')
 
+--- Is this answer a yes? Spelled out for both shapes a provider can return —
+--- see the header. Used on native returns and on third-party export returns,
+--- which are equally free to answer 1.
+local function yes(value)
+    return value == true or (type(value) == 'number' and value ~= 0)
+end
+
+--- Is the player part-way out of the seat right now?
+---
+--- Task 2 is CODE_TASK_EXIT_VEHICLE, and it is active from the moment the exit
+--- begins until the ped detaches — about a second of animation. This is the same
+--- signal LVC watches to fire `lvc:onVehicleExit` (its UTIL/cl_lvc.lua), which
+--- is why it is the right one here and not merely a plausible one: it makes
+--- tChirp's idea of "getting out" the same instant as the provider's.
+local function leavingSeat()
+    return yes(GetIsTaskActive(PlayerPedId(), 2))
+end
+
 -- ── Event-driven state caches ─────────────────────────────────────────────
 -- All keyed to the vehicle the local player is in, so another player's siren
 -- never bleeds through.
+--
+-- ⚠️ AN "OFF" THAT ARRIVES MID-EXIT IS PART OF THE PARK KILL, NOT A CANCELLATION
+-- OF IT, and ignoring it is what makes these three providers able to fire at all.
+--
+-- LVC has a park kill of its own, on by default. Its exit thread fires
+-- `lvc:onVehicleExit` the instant CODE_TASK_EXIT_VEHICLE goes active, and that
+-- handler calls SetLxSirenStateForVeh(veh, 0) — which broadcasts
+-- `state_lxsiren = 0` to us (UTIL/cl_lvc.lua, upstream v3). The ped is still in
+-- the seat for the ~1s of exit animation that follows, so cl_chirp.lua's 500 ms
+-- poll re-snapshots the siren as OFF at least once BEFORE it ever sees the seat
+-- empty. Keyed on siren state alone, an LVC park kill therefore could not chirp
+-- — not sometimes, never — which is the whole of the `sirenSystem = 'lvc'`
+-- bug report of 2026-10-26. Widening the poll could not fix it: the zero always
+-- lands first, so there is no interval short enough.
+--
+-- This is NOT the 500 ms snapshot window documented below. That window is a
+-- sampling artefact and still applies to a siren switched off by hand while
+-- seated. This is an event: a provider zeroing its own state because the player
+-- is getting out, which is the thing being detected.
 
 local lvcTone, lvcVehicle = 0, 0
 local alsActive, alsVehicle = false, 0
@@ -50,6 +96,7 @@ local elsState, elsVehicle = 0, 0
 -- third-party broadcast identical, so it is the same checker below.
 AddEventHandler('lvc:UpdateThirdParty', function(data)
     if not data or data.state_lxsiren == nil then return end
+    if data.state_lxsiren == 0 and lvcTone > 0 and leavingSeat() then return end
     lvcTone = data.state_lxsiren
     lvcVehicle = GetVehiclePedIsIn(PlayerPedId(), false)
 end)
@@ -66,17 +113,19 @@ AddEventHandler('ALS:PlaySecondarySirenClient', function(vehicle)
     end
 end)
 AddEventHandler('ALS:StopPrimarySirenClient', function(vehicle)
-    if vehicle == alsVehicle then alsActive = false end
+    if vehicle == alsVehicle and not leavingSeat() then alsActive = false end
 end)
 AddEventHandler('ALS:StopSecondarySirenClient', function(vehicle)
-    if vehicle == alsVehicle then alsActive = false end
+    if vehicle == alsVehicle and not leavingSeat() then alsActive = false end
 end)
 
 -- ELS-FiveM broadcasts every player's state to every client, so the sender has
 -- to be filtered down to us before the cache is touched.
 AddEventHandler('els:setSirenState_c', function(sender, newstate)
     if tonumber(sender) ~= GetPlayerServerId(PlayerId()) then return end
-    elsState = newstate or 0
+    local state = newstate or 0
+    if state == 0 and elsState > 0 and leavingSeat() then return end
+    elsState = state
     elsVehicle = GetVehiclePedIsIn(PlayerPedId(), false)
 end)
 
@@ -90,16 +139,61 @@ end
 
 -- ── Per-provider checkers ─────────────────────────────────────────────────
 
---- Ask an export-based provider. `pcall` because the export is absent on a
---- server that does not run it, and a missing export is a throw rather than a
---- nil — which would take the whole cascade down instead of falling through.
+-- Each entry is a LIST because this is the CONSUMING side of other people's
+-- renames, and a single hard-coded name turns one into a silent, permanent
+-- detection failure — the checker reads "not installed" and returns nil forever,
+-- with nothing in the console to say why.
+--
+--   tels: tELS was renamed tLS on 2026-10-24. The current build answers to both
+--         (`provide 'tELS'` plus routed legacy exports), but a server still on
+--         the OLD resource answers only to `tELS`, so that name has to stay.
+--   jls:  reported on 2026-10-24 as now shipping as `Burkhardt_Software_JLS`,
+--         where tChirp 2.0.0 knew only `Jace3483_JLS`.
+--
+-- The KEYS are ids, not labels: they are what `Config.sirenSystem` and
+-- `Config.sirenResources` are written in terms of, so they do not move with a
+-- product name.
+local RESOURCE_CANDIDATES = {
+    tels = { 'tLS', 'tELS' },
+    jls  = { 'Burkhardt_Software_JLS', 'Jace3483_JLS' },
+}
+
+--- The started resource to ask for this provider, or nil if none is running.
+---
+--- `Config.sirenResources` is tried FIRST but is not final: a server upgrading
+--- from 2.0.0 keeps a config.lua pinning `jls = 'Jace3483_JLS'`, and honouring a
+--- pinned name that is not running would leave exactly the servers this fix is
+--- for still broken. So an override that names nothing started falls through to
+--- the candidates rather than ending the search.
+local function sirenResource(resourceKey)
+    local override = Config.sirenResources and Config.sirenResources[resourceKey]
+    if type(override) == 'string' and override ~= '' and GetResourceState(override) == 'started' then
+        return override
+    end
+    for _, name in ipairs(RESOURCE_CANDIDATES[resourceKey]) do
+        if GetResourceState(name) == 'started' then return name end
+    end
+    return nil
+end
+
+--- Ask an export-based provider.
+---
+--- The GetResourceState check is not merely an optimisation. `exports[name]`
+--- THROWS for an unknown resource, and this runs on every park check, so without
+--- it every server that does not run tLS raised and caught a Lua error for it
+--- forever. Not cached: server.cfg start order is arbitrary and a provider may
+--- start after tChirp, so a cached negative would disable detection for the
+--- whole session.
+---
+--- `pcall` still wraps the call itself, for a provider that is started but
+--- raises inside its own export.
 local function askExport(resourceKey, vehicle)
-    local name = Config.sirenResources and Config.sirenResources[resourceKey]
-    if type(name) ~= 'string' or name == '' then return nil end
+    local name = sirenResource(resourceKey)
+    if not name then return nil end
     local ok, active = pcall(function()
         return exports[name]:IsSirenActive(vehicle)
     end)
-    if ok and active ~= nil then return active end
+    if ok and active ~= nil then return yes(active) end
     return nil
 end
 
@@ -134,11 +228,35 @@ end
 
 -- Always answers, which is what makes it usable as the last rung and unusable
 -- as any other: a native check placed above ALS would answer for an ALS car.
-checkers.native = function(vehicle) return IsVehicleSirenOn(vehicle) end
+--
+-- ⚠️ IsVehicleSirenAudioOn, **NOT** IsVehicleSirenOn. This is the other half of
+-- the 2026-10-26 report — "the chirp will happen even if you just get out of
+-- your car w the lights activated".
+--
+-- `IsVehicleSirenOn` is the siren SWITCH, and in GTA that switch is the light
+-- bar: SetVehicleSiren(true) raises lights and audio together, and every ELS
+-- drives the lights through it. So on "lights on, siren off" — the normal state
+-- of a parked unit at a scene — it reads true, and every exit looked like a park
+-- kill. There is no configuration that fixes that, because the flag genuinely
+-- cannot tell the two apart.
+--
+-- IsVehicleSirenAudioOn (0xB5CC40FBCB586380) can: it reports the siren AUDIO,
+-- and is documented as false for a vehicle whose lights are on with the audio
+-- silenced. That also makes this rung harmless on an LVC server, which is what
+-- lets `auto` stay usable there: LVC calls SetVehicleHasMutedSirens every frame
+-- on the car it controls (that is what its TogMuteDfltSrnForVeh does — the
+-- native's other alias is DisableVehicleImpactExplosionActivation) because it
+-- plays its own tones, so the audio flag is false on an LVC car and the real
+-- answer can only come from the LVC rung above.
+--
+-- The trade, stated so it is not rediscovered: audio is a stricter test than the
+-- switch, so this rung can only ever chirp LESS than before. A missed reminder
+-- is the right direction to fail; a siren-off car chirping at a scene is not.
+checkers.native = function(vehicle) return yes(IsVehicleSirenAudioOn(vehicle)) end
 
 checkers.lvc_fleet = checkers.lvc
 
--- tELS first because it is ours and it answers definitively. `native` last for
+-- tLS first because it is ours and it answers definitively. `native` last for
 -- the reason above. ALS below JLS because ALS's false-for-claimed behaviour is
 -- inferred from its events rather than asked, so a provider that can be asked
 -- gets the first word.
@@ -172,8 +290,16 @@ function tchirpIsSirenActive(vehicle)
         return false
     end
 
+    -- Returned as given, with nil meaning "no". It USED to be `answer == true`,
+    -- which is the trap this file's header names: the two rungs that read a
+    -- foreign value — `native` and `askExport` — handed back the number 1, and
+    -- `1 == true` is false in Lua, so a pinned provider that said yes was heard
+    -- as "the siren was off". Both of those rungs now normalise at the boundary,
+    -- which is the only place that knows it is holding a foreign value, so there
+    -- is nothing left to compare here.
     local answer = checker(vehicle)
-    return answer == true
+    if answer == nil then return false end
+    return answer
 end
 
 --- What a single named provider says right now, for `tchirp_diag`. Returns the
@@ -222,7 +348,7 @@ end
 --- spelled out because "native" to a server owner reading a status line is not
 --- obviously "GTA's own siren flag, which ALS lies about".
 TCHIRP_PROVIDER_LABELS = {
-    tels      = 'tELS',
+    tels      = 'tLS',
     lvc       = 'Luxart Vehicle Control',
     lvc_fleet = 'LVC Fleet',
     els_fivem = 'ELS-FiveM',
