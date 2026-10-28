@@ -7,7 +7,7 @@ author 'Tommy Johnston'
 -- tlib.versioncheck looks for an author equal to 'TIMMYG Studios'; nothing else
 -- it can read identifies the resource as ours.
 author 'TIMMYG Studios'
-version '2.0.0'
+version '2.0'
 
 lua54 'yes'
 
